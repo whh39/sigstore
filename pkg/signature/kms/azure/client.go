@@ -42,16 +42,48 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
+
+	hmac "crypto/hmac"
+	sha256 "crypto/sha256"
+	tls "crypto/tls"
+
+	// "encoding/base64"
+	// "encoding/json"
+    // "fmt"
+    http "net/http"
+    ioutil "io/ioutil"
+    // "net/url"
+	// "strings"
+
+	// "time"
+	"strconv"
+	"sort"
+	"bytes"
+
+	"github.com/iancoleman/orderedmap"
 )
 
+
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
-		return LoadSignerVerifier(ctx, keyResourceID)
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(ctx, keyResourceID, hashFunc)
 	})
 }
 
+// type kvClient interface {
+// 	CreateKey(ctx context.Context, name string, parameters azkeys.CreateKeyParameters, options *azkeys.CreateKeyOptions) (azkeys.CreateKeyResponse, error)
+// 	GetKey(ctx context.Context, name, version string, options *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error)
+// 	Sign(ctx context.Context, name, version string, parameters azkeys.SignParameters, options *azkeys.SignOptions) (azkeys.SignResponse, error)
+// 	Verify(ctx context.Context, name, version string, parameters azkeys.VerifyParameters, options *azkeys.VerifyOptions) (azkeys.VerifyResponse, error)
+// }
+//ehsm
 type kvClient interface {
-	CreateKey(ctx context.Context, name string, parameters azkeys.CreateKeyParameters, options *azkeys.CreateKeyOptions) (azkeys.CreateKeyResponse, error)
+	// GetVersion()
+
+	// Enroll()
+
+	CreateKey(keyspec string, origin string) 
+    // CreateKey("EH_AES_GCM_128", "EH_INTERNAL_KEY")
 	GetKey(ctx context.Context, name, version string, options *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error)
 	Sign(ctx context.Context, name, version string, parameters azkeys.SignParameters, options *azkeys.SignOptions) (azkeys.SignResponse, error)
 	Verify(ctx context.Context, name, version string, parameters azkeys.VerifyParameters, options *azkeys.VerifyOptions) (azkeys.VerifyResponse, error)
@@ -66,15 +98,21 @@ type azureVaultClient struct {
 }
 
 var (
-	errAzureReference = errors.New("kms specification should be in the format azurekms://[VAULT_NAME][VAULT_URL]/[KEY_NAME]")
+	// errAzureReference = errors.New("kms specification should be in the format azurekms://[VAULT_NAME][VAULT_URL]/[KEY_NAME]")
+	errAzureReference = errors.New("kms specification should be in the format ehsm://[VAULT_NAME][VAULT_URL]/[KEY_NAME]")
 
-	referenceRegex = regexp.MustCompile(`^azurekms://([^/]+)/([^/]+)?$`)
+	// referenceRegex = regexp.MustCompile(`^azurekms://([^/]+)/([^/]+)?$`)
+	referenceRegex = regexp.MustCompile(`^ehsmkms://([^/]+)/([^/]+)?$`)
 )
 
 const (
-	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
-	ReferenceScheme = "azurekms://"
-	cacheKey        = "azure_vault_signer"
+	// // ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
+	// ReferenceScheme = "azurekms://"
+	// cacheKey        = "azure_vault_signer"
+
+	//ehsm
+	ReferenceScheme = "ehsmkms://"
+	cacheKey        = "ehsm_signer"
 )
 
 // ValidReference returns a non-nil error if the reference string is invalid
@@ -88,7 +126,8 @@ func ValidReference(ref string) error {
 func parseReference(resourceID string) (vaultURL, vaultName, keyName string, err error) {
 	v := referenceRegex.FindStringSubmatch(resourceID)
 	if len(v) != 3 {
-		err = fmt.Errorf("invalid azurekms format %q", resourceID)
+		// err = fmt.Errorf("invalid azurekms format %q", resourceID)
+		err = fmt.Errorf("invalid ehsmkms format %q", resourceID)
 		return
 	}
 
@@ -108,7 +147,7 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 
 	client, err := getKeysClient(vaultURL)
 	if err != nil {
-		return nil, fmt.Errorf("new azure kms client: %w", err)
+		return nil, fmt.Errorf("new ehsm kms client: %w", err)
 	}
 
 	azClient := &azureVaultClient{
@@ -288,23 +327,25 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 		return a.public(ctx)
 	}
 
-	_, err = a.client.CreateKey(
-		ctx,
-		a.keyName,
-		azkeys.CreateKeyParameters{
-			KeyAttributes: &azkeys.KeyAttributes{
-				Enabled: to.Ptr(true),
-			},
-			KeySize: to.Ptr(int32(2048)),
-			KeyOps: []*azkeys.JSONWebKeyOperation{
-				to.Ptr(azkeys.JSONWebKeyOperationSign),
-				to.Ptr(azkeys.JSONWebKeyOperationVerify),
-			},
-			Kty: to.Ptr(azkeys.JSONWebKeyTypeEC),
-			Tags: map[string]*string{
-				"use": to.Ptr("sigstore"),
-			},
-		}, nil)
+	// _, err = a.client.CreateKey(
+	// 	ctx,
+	// 	a.keyName,
+	// 	azkeys.CreateKeyParameters{
+	// 		KeyAttributes: &azkeys.KeyAttributes{
+	// 			Enabled: to.Ptr(true),
+	// 		},
+	// 		KeySize: to.Ptr(int32(2048)),
+	// 		KeyOps: []*azkeys.JSONWebKeyOperation{
+	// 			to.Ptr(azkeys.JSONWebKeyOperationSign),
+	// 			to.Ptr(azkeys.JSONWebKeyOperationVerify),
+	// 		},
+	// 		Kty: to.Ptr(azkeys.JSONWebKeyTypeEC),
+	// 		Tags: map[string]*string{
+	// 			"use": to.Ptr("sigstore"),
+	// 		},
+	// 	}, nil)
+
+	_, err = a.client.CreateKey("EH_RSA_3072", "EH_INTERNAL_KEY")
 	if err != nil {
 		return nil, err
 	}
@@ -405,3 +446,195 @@ func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) e
 
 	return nil
 }
+//ehsm
+func GetVersion() {
+	// 创建一个不安全的Transport
+    tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+
+	// 创建一个不安全的Client
+    client := &http.Client{Transport: tr}
+
+    // 创建请求对象
+    req, err := http.NewRequest("GET", "https://10.112.240.169:9000/ehsm?Action=GetVersion", nil)
+    if err != nil {
+        panic(err)
+    }
+
+    // 设置请求头部
+    req.Header.Set("Accept", "application/json")
+
+    // 发送请求
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    // 读取响应内容
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        panic(err)
+    }
+
+	fmt.Printf(string(body))
+
+    // 解析JSON响应体
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		panic(err)
+	}
+
+	// 输出响应体
+	fmt.Printf("YYYY--%+v\n", data)
+}
+
+func Enroll() {
+	// 创建一个不安全的Transport
+    tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+
+	// 创建一个不安全的Client
+    client := &http.Client{Transport: tr}
+
+    // 创建请求对象
+    req, err := http.NewRequest("GET", "https://10.112.240.169:9000/ehsm?Action=Enroll", nil)
+    if err != nil {
+        panic(err)
+    }
+
+    // 设置请求头部
+    req.Header.Set("Accept", "application/json")
+
+    // 发送请求
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    // 读取响应内容
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        panic(err)
+    }
+	fmt.Printf(string(body))
+
+    // 解析JSON响应体
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		panic(err)
+	}
+
+	// 输出响应体
+	fmt.Printf("YYYY--%+v\n", data)
+}
+
+const (
+	appid ="2e145099-2bd7-431f-8422-eaac37fa8ff9"
+	apikey = "Hjyjmdr12yy0Sxh3p5e0MgrkQKnc7tir"
+
+	baseURL = "https://10.112.240.169:9002/ehsm?Action="
+)
+
+
+func sortMap(oldmap *orderedmap.OrderedMap) *orderedmap.OrderedMap {
+	newmap := orderedmap.New()
+
+	keys := oldmap.Keys()
+
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		value, _ := oldmap.Get(key)
+		newmap.Set(key, value)
+	}
+
+	return newmap
+}
+
+// func paramsSortStr(signParams *orderedmap.OrderedMap) string {
+    var str string
+
+    sortedSignParams := sortMap(signParams)
+
+    for _, k := range sortedSignParams.Keys() {
+        v, _ := sortedSignParams.Get(k)
+
+        if k == "payload" {
+            payload := v.(*orderedmap.OrderedMap)
+            str += "&" + k + "=" + paramsSortStr(payload)
+        } else {
+            str += fmt.Sprintf("&%s=%v", k, v)
+        }
+    }
+
+    if len(str) > 0 {
+        str = str[1:] // Remove leading "&"
+    }
+
+    return str
+}
+
+func CreateKey(keyspec, origin string) {
+    fmt.Println("CreateKey")
+
+    payload := orderedmap.New()
+    payload.Set("keyspec", keyspec)
+    payload.Set("origin", origin)
+
+    params := orderedmap.New()
+    params.Set("appid", appid)
+    params.Set("payload", payload)
+    params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+
+	signString := paramsSortStr(params)
+	hmacSha256 := hmac.New(sha256.New, []byte(apikey))
+    hmacSha256.Write([]byte(signString))
+    sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
+
+    params.Set("sign", sign)
+
+    // 将 params 转换为 JSON
+    requestBody, err := json.Marshal(params)
+    if err != nil {
+        fmt.Println("JSON marshal error:", err)
+        return
+    }
+	fmt.Println(string(requestBody))
+
+	// 忽略服务器的SSL证书验证
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+    // 发送 POST 请求
+    resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
+    if err != nil {
+        fmt.Println("NewRequest error:", err)
+        return
+    }
+
+    defer resp.Body.Close()
+
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        fmt.Println("ReadAll error:", err)
+        return
+    }
+    fmt.Println("Response:", string(body))
+}
+
+// func main() {
+// 	// GetVersion()
+
+// 	// Enroll()
+
+// 	CreateKey("EH_RSA_3072", "EH_INTERNAL_KEY")
+//     CreateKey("EH_AES_GCM_128", "EH_INTERNAL_KEY")
+// }
