@@ -1,4 +1,4 @@
-module github.com/sigstore/sigstore/pkg/signature/kms/azure
+module github.com/whh39/sigstore/pkg/signature/kms/azure
 
 replace github.com/sigstore/sigstore => ../../../../
 
