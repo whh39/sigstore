@@ -60,14 +60,27 @@ import (
     "github.com/iancoleman/orderedmap"
 )
 
+
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
-		return LoadSignerVerifier(ctx, keyResourceID)
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(ctx, keyResourceID, hashFunc)
 	})
 }
 
+// type kvClient interface {
+// 	CreateKey(ctx context.Context, name string, parameters azkeys.CreateKeyParameters, options *azkeys.CreateKeyOptions) (azkeys.CreateKeyResponse, error)
+// 	GetKey(ctx context.Context, name, version string, options *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error)
+// 	Sign(ctx context.Context, name, version string, parameters azkeys.SignParameters, options *azkeys.SignOptions) (azkeys.SignResponse, error)
+// 	Verify(ctx context.Context, name, version string, parameters azkeys.VerifyParameters, options *azkeys.VerifyOptions) (azkeys.VerifyResponse, error)
+// }
+//ehsm
 type kvClient interface {
-	CreateKey(ctx context.Context, name string, parameters azkeys.CreateKeyParameters, options *azkeys.CreateKeyOptions) (azkeys.CreateKeyResponse, error)
+	// GetVersion()
+
+	// Enroll()
+
+	CreateKey(keyspec string, origin string) 
+    // CreateKey("EH_AES_GCM_128", "EH_INTERNAL_KEY")
 	GetKey(ctx context.Context, name, version string, options *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error)
 	Sign(ctx context.Context, name, version string, parameters azkeys.SignParameters, options *azkeys.SignOptions) (azkeys.SignResponse, error)
 	Verify(ctx context.Context, name, version string, parameters azkeys.VerifyParameters, options *azkeys.VerifyOptions) (azkeys.VerifyResponse, error)
@@ -83,15 +96,21 @@ type azureVaultClient struct {
 }
 
 var (
-	errAzureReference = errors.New("kms specification should be in the format azurekms://[VAULT_NAME][VAULT_URL]/[KEY_NAME]")
+	// errAzureReference = errors.New("kms specification should be in the format azurekms://[VAULT_NAME][VAULT_URL]/[KEY_NAME]")
+	errAzureReference = errors.New("kms specification should be in the format ehsm://[VAULT_NAME][VAULT_URL]/[KEY_NAME]")
 
-	referenceRegex = regexp.MustCompile(`^azurekms://([^/]+)/([^/]+)?$`)
+	// referenceRegex = regexp.MustCompile(`^azurekms://([^/]+)/([^/]+)?$`)
+	referenceRegex = regexp.MustCompile(`^ehsmkms://([^/]+)/([^/]+)?$`)
 )
 
 const (
-	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
-	ReferenceScheme = "azurekms://"
-	cacheKey        = "azure_vault_signer"
+	// // ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
+	// ReferenceScheme = "azurekms://"
+	// cacheKey        = "azure_vault_signer"
+
+	//ehsm
+	ReferenceScheme = "ehsmkms://"
+	cacheKey        = "ehsm_signer"
 )
 
 // ValidReference returns a non-nil error if the reference string is invalid
@@ -105,7 +124,8 @@ func ValidReference(ref string) error {
 func parseReference(resourceID string) (vaultURL, vaultName, keyName string, err error) {
 	v := referenceRegex.FindStringSubmatch(resourceID)
 	if len(v) != 3 {
-		err = fmt.Errorf("invalid azurekms format %q", resourceID)
+		// err = fmt.Errorf("invalid azurekms format %q", resourceID)
+		err = fmt.Errorf("invalid ehsmkms format %q", resourceID)
 		return
 	}
 
@@ -125,7 +145,7 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 
 	client, err := getKeysClient(vaultURL)
 	if err != nil {
-		return nil, fmt.Errorf("new azure kms client: %w", err)
+		return nil, fmt.Errorf("new ehsm kms client: %w", err)
 	}
 
 	azClient := &azureVaultClient{ 
