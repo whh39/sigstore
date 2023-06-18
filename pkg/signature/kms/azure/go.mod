@@ -9,6 +9,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
 	github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys v0.10.0
 	github.com/go-jose/go-jose/v3 v3.0.0
+	github.com/iancoleman/orderedmap v0.2.0
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/crypto v0.10.0
