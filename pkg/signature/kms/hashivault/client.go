@@ -541,3 +541,46 @@ func CreateKeyS(keyspec, origin string) (string, error) {
     // }
     // fmt.Println("Response:", string(body))
 }
+
+func Enroll() {
+	// 创建一个不安全的Transport
+    tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+
+	// 创建一个不安全的Client
+    client := &http.Client{Transport: tr}
+
+    // 创建请求对象
+    req, err := http.NewRequest("GET", "https://10.112.240.169:9000/ehsm?Action=Enroll", nil)
+    if err != nil {
+        panic(err)
+    }
+
+    // 设置请求头部
+    req.Header.Set("Accept", "application/json")
+
+    // 发送请求
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    // 读取响应内容
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        panic(err)
+    }
+	fmt.Printf(string(body))
+
+    // 解析JSON响应体
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		panic(err)
+	}
+
+	// 输出响应体
+	fmt.Printf("YYYY--%+v\n", data)
+}
