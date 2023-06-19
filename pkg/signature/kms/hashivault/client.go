@@ -19,6 +19,8 @@ package hashivault
 import (
 	"context"
 	"crypto"
+	"crypto/x509"
+	"encoding/pem"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -428,50 +430,16 @@ type ehsmClient interface{
 //     key ehsmClient
 // }
 
-func (a hashivaultClient) createKeyS() ([]byte, error){
-	// var keyspec, origin string
-	// keyspec = "EH_RSA_3072"
-	// origin = "EH_INTERNAL_KEY"
-	// fmt.Println("whh createKeyS")
-    // payload := orderedmap.New()
-    // payload.Set("keyspec", keyspec)
-    // payload.Set("origin", origin)
-    // params := orderedmap.New()
-    // // params.Set("appid", appid)
-	// params.Set("appid", appid)
-    // params.Set("payload", payload)
-    // params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
-    // signString := paramsSortStr(params)
-    // hmacSha256 := hmac.New(sha256.New, []byte(apikey))
-    // hmacSha256.Write([]byte(signString))
-    // sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
-    // params.Set("sign", sign)
-    // // 将 params 转换为 JSON
-    // requestBody, err := json.Marshal(params)
-    // if err != nil {
-    //     fmt.Println("JSON marshal error:", err)
-    //     return "", err
-    // }
-    // fmt.Println(string(requestBody))
-    // // 忽略服务器的SSL证书验证
-    // tr := &http.Transport{
-    //     TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-    // }
-    // client := &http.Client{Transport: tr}
-    // // 发送 POST 请求
-    // resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
-    // if err != nil {
-    //     fmt.Println("NewRequest error:", err)
-    //     return "", err
-    // }
-    // defer resp.Body.Close()
-    // body, err := ioutil.ReadAll(resp.Body)
-    // if err != nil {
-    //     fmt.Println("ReadAll error:", err)
-    //     return "", err
-    // }
-    // fmt.Println("Response:", string(body))
+type PEMType string
 
+const (
+	// PublicKeyPEMType is the string "PUBLIC KEY" to be used during PEM encoding and decoding
+	PublicKeyPEMType PEMType = "PUBLIC KEY"
+	// PKCS1PublicKeyPEMType is the string "RSA PUBLIC KEY" used to parse PKCS#1-encoded public keys
+	PKCS1PublicKeyPEMType PEMType = "RSA PUBLIC KEY"
+)
+
+func (a hashivaultClient) createKeyS() (crypto.PublicKey, error){
 
 	fmt.Println("Getpubkey")
 
@@ -527,7 +495,22 @@ func (a hashivaultClient) createKeyS() ([]byte, error){
 
 	fmt.Println(pubkeyResponse.Result.Pubkey)
 
-	return []byte(pubkeyResponse.Result.Pubkey), nil
+	// return []byte(pubkeyResponse.Result.Pubkey), nil
+	pemBytes := []byte(pubkeyResponse.Result.Pubkey)
+
+	derBytes, _ := pem.Decode(pemBytes)
+	if derBytes == nil {
+		return nil, errors.New("PEM decoding failed")
+	}
+	switch derBytes.Type {
+	case string(PublicKeyPEMType):
+		return x509.ParsePKIXPublicKey(derBytes.Bytes)
+	case string(PKCS1PublicKeyPEMType):
+		return x509.ParsePKCS1PublicKey(derBytes.Bytes)
+	default:
+		return nil, fmt.Errorf("unknown Public key PEM file type: %v. Are you passing the correct public key?",
+			derBytes.Type)
+	}
 }
 
 type PubkeyResponse struct {
