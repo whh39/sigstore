@@ -412,9 +412,12 @@ func (h hashivaultClient) createKey(typeStr string) (crypto.PublicKey, error) {
 }
 
 const (
-    appid ="2e145099-2bd7-431f-8422-eaac37fa8ff9"
-    apikey = "Hjyjmdr12yy0Sxh3p5e0MgrkQKnc7tir"
-    baseURL = "https://10.112.240.169:9002/ehsm?Action="
+    appid = "e6c3918d-d0ab-4654-901d-4534a348b286"
+	apikey = "M6czJYhrDLcw4DZvmkzH69dt5wLgsSJK"
+
+    keyid = "07fc42a4-59b7-4ce5-9219-a2d97c64e55e"
+
+	baseURL = "https://10.112.240.164:9002/ehsm?Action="
 )
 
 type ehsmClient interface{
@@ -426,50 +429,113 @@ type ehsmClient interface{
 // }
 
 func (a hashivaultClient) createKeyS() (string, error){
-	var keyspec, origin string
-	keyspec = "EH_RSA_3072"
-	origin = "EH_INTERNAL_KEY"
-	fmt.Println("whh createKeyS")
-    payload := orderedmap.New()
-    payload.Set("keyspec", keyspec)
-    payload.Set("origin", origin)
-    params := orderedmap.New()
-    // params.Set("appid", appid)
-	params.Set("appid", "5534cc2e-937c-41a4-9fcb-c7f08a480a2c")
-    params.Set("payload", payload)
-    params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
-    signString := paramsSortStr(params)
-    hmacSha256 := hmac.New(sha256.New, []byte(apikey))
-    hmacSha256.Write([]byte(signString))
-    sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
-    params.Set("sign", sign)
-    // 将 params 转换为 JSON
-    requestBody, err := json.Marshal(params)
-    if err != nil {
-        fmt.Println("JSON marshal error:", err)
-        return "", err
-    }
-    fmt.Println(string(requestBody))
-    // 忽略服务器的SSL证书验证
-    tr := &http.Transport{
-        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-    }
-    client := &http.Client{Transport: tr}
-    // 发送 POST 请求
-    resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
-    if err != nil {
-        fmt.Println("NewRequest error:", err)
-        return "", err
-    }
-    defer resp.Body.Close()
-    body, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-        fmt.Println("ReadAll error:", err)
-        return "", err
-    }
-    fmt.Println("Response:", string(body))
-    // a.clients.CreateKeyS("EH_RSA_3072", "EH_INTERNAL_KEY")
-    return string(body), nil
+	// var keyspec, origin string
+	// keyspec = "EH_RSA_3072"
+	// origin = "EH_INTERNAL_KEY"
+	// fmt.Println("whh createKeyS")
+    // payload := orderedmap.New()
+    // payload.Set("keyspec", keyspec)
+    // payload.Set("origin", origin)
+    // params := orderedmap.New()
+    // // params.Set("appid", appid)
+	// params.Set("appid", appid)
+    // params.Set("payload", payload)
+    // params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+    // signString := paramsSortStr(params)
+    // hmacSha256 := hmac.New(sha256.New, []byte(apikey))
+    // hmacSha256.Write([]byte(signString))
+    // sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
+    // params.Set("sign", sign)
+    // // 将 params 转换为 JSON
+    // requestBody, err := json.Marshal(params)
+    // if err != nil {
+    //     fmt.Println("JSON marshal error:", err)
+    //     return "", err
+    // }
+    // fmt.Println(string(requestBody))
+    // // 忽略服务器的SSL证书验证
+    // tr := &http.Transport{
+    //     TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    // }
+    // client := &http.Client{Transport: tr}
+    // // 发送 POST 请求
+    // resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
+    // if err != nil {
+    //     fmt.Println("NewRequest error:", err)
+    //     return "", err
+    // }
+    // defer resp.Body.Close()
+    // body, err := ioutil.ReadAll(resp.Body)
+    // if err != nil {
+    //     fmt.Println("ReadAll error:", err)
+    //     return "", err
+    // }
+    // fmt.Println("Response:", string(body))
+
+
+	fmt.Println("Getpubkey")
+
+	payload := orderedmap.New()
+	payload.Set("keyid", keyid)
+
+	params := orderedmap.New()
+	params.Set("appid", appid)
+	params.Set("payload", payload)
+	params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+
+	signString := paramsSortStr(params)
+	hmacSha256 := hmac.New(sha256.New, []byte(apikey))
+	hmacSha256.Write([]byte(signString))
+	sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
+
+	params.Set("sign", sign)
+
+	// 将 params 转换为 JSON
+	requestBody, err := json.Marshal(params)
+	if err != nil {
+		fmt.Println("JSON marshal error:", err)
+		return "", err
+	}
+	fmt.Println(string(requestBody))
+
+	// 忽略服务器的SSL证书验证
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	// 发送 POST 请求
+	resp, err := client.Post(baseURL+"GetPublicKey", "application/json",  bytes.NewBuffer(requestBody))
+	if err != nil {
+		fmt.Println("NewRequest error:", err)
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("ReadAll error:", err)
+		return "", err
+	}
+
+	var pubkeyResponse PubkeyResponse
+
+	str := string(body)
+
+	json.Unmarshal([]byte(str), &pubkeyResponse)
+
+	fmt.Println(pubkeyResponse.Result.Pubkey)
+
+	return pubkeyResponse.Result.Pubkey, nil
+}
+
+type PubkeyResponse struct {
+	Code int `json:"code"`
+	Result struct {
+		Keyid string `json:"keyid"`
+		Pubkey string `json:"pubkey"`
+	} `json:"result"`
 }
 
 func sortMap(oldmap *orderedmap.OrderedMap) *orderedmap.OrderedMap {
