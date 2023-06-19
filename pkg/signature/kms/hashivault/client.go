@@ -452,7 +452,7 @@ func paramsSortStr(signParams *orderedmap.OrderedMap) string {
 
 // func CreateKeyS(keyspec, origin string) {
 func CreateKeyS() (string, error) {
-    fmt.Println("CreateKey")
+    fmt.Println("000 CreateKey")
 	return "a", nil
     // payload := orderedmap.New()
     // payload.Set("keyspec", keyspec)
