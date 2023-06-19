@@ -427,6 +427,8 @@ type ehsmClient interface{
 
 func (a hashivaultClient) createKeyS() (string, error){
 	var keyspec, origin string
+	keyspec = "EH_RSA_3072"
+	origin = "EH_INTERNAL_KEY"
 	fmt.Println("whh createKeyS")
     payload := orderedmap.New()
     payload.Set("keyspec", keyspec)
