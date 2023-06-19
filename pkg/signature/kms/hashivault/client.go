@@ -87,6 +87,7 @@ const (
 
 // ValidReference returns a non-nil error if the reference string is invalid
 func ValidReference(ref string) error {
+	fmt.Println("whh ValidReference")
 	if !referenceRegex.MatchString(ref) {
 		return errReference
 	}
@@ -94,6 +95,7 @@ func ValidReference(ref string) error {
 }
 
 func parseReference(resourceID string) (keyPath string, err error) {
+	fmt.Println("whh parseReference")
 	i := referenceRegex.SubexpIndex("path")
 	v := referenceRegex.FindStringSubmatch(resourceID)
 	if len(v) < i+1 {
@@ -105,6 +107,7 @@ func parseReference(resourceID string) (keyPath string, err error) {
 }
 
 func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID string, keyVersion uint64) (*hashivaultClient, error) {
+	fmt.Println("whh newHashivaultClient")
 	if err := ValidReference(keyResourceID); err != nil {
 		return nil, err
 	}
@@ -170,6 +173,7 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 }
 
 func oidcLogin(_ context.Context, address, path, role, token string) (string, error) {
+	fmt.Println("whh oidcLogin")
 	if address == "" {
 		address = os.Getenv("VAULT_ADDR")
 	}
@@ -200,6 +204,7 @@ func oidcLogin(_ context.Context, address, path, role, token string) (string, er
 }
 
 func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, error) {
+	fmt.Println("whh fetchPublicKey")
 	client := h.client.Logical()
 
 	path := fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath)
@@ -253,6 +258,7 @@ func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, 
 }
 
 func (h *hashivaultClient) public() (crypto.PublicKey, error) {
+	fmt.Println("whh public")
 	var lerr error
 	loader := ttlcache.LoaderFunc[string, crypto.PublicKey](
 		func(c *ttlcache.Cache[string, crypto.PublicKey], key string) *ttlcache.Item[string, crypto.PublicKey] {
@@ -271,6 +277,7 @@ func (h *hashivaultClient) public() (crypto.PublicKey, error) {
 }
 
 func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
+	fmt.Println("whh sign")
 	client := h.client.Logical()
 
 	keyVersion := fmt.Sprintf("%d", h.keyVersion)
@@ -304,6 +311,7 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 }
 
 func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
+	fmt.Println("whh verify")
 	client := h.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
@@ -362,6 +370,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 
 // Vault likes to prefix base64 data with a version prefix
 func vaultDecode(data interface{}, keyVersionUsed *string) ([]byte, error) {
+	fmt.Println("whh vaultDecode")
 	encoded, ok := data.(string)
 	if !ok {
 		return nil, errors.New("received non-string data")
@@ -374,6 +383,7 @@ func vaultDecode(data interface{}, keyVersionUsed *string) ([]byte, error) {
 }
 
 func hashString(h crypto.Hash) string {
+	fmt.Println("whh hashString")
 	var hashStr string
 	switch h {
 	case crypto.SHA224:
@@ -417,7 +427,43 @@ type ehsmClient interface{
 
 func (a hashivaultClient) createKeyS() (string, error){
 	fmt.Println("whh createKeyS")
-    // a.clients.CreateKeyS()
+    payload := orderedmap.New()
+    payload.Set("keyspec", keyspec)
+    payload.Set("origin", origin)
+    params := orderedmap.New()
+    params.Set("appid", appid)
+    params.Set("payload", payload)
+    params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+    signString := paramsSortStr(params)
+    hmacSha256 := hmac.New(sha256.New, []byte(apikey))
+    hmacSha256.Write([]byte(signString))
+    sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
+    params.Set("sign", sign)
+    // 将 params 转换为 JSON
+    requestBody, err := json.Marshal(params)
+    if err != nil {
+        fmt.Println("JSON marshal error:", err)
+        return
+    }
+    fmt.Println(string(requestBody))
+    // 忽略服务器的SSL证书验证
+    tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+    client := &http.Client{Transport: tr}
+    // 发送 POST 请求
+    resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
+    if err != nil {
+        fmt.Println("NewRequest error:", err)
+        return
+    }
+    defer resp.Body.Close()
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        fmt.Println("ReadAll error:", err)
+        return
+    }
+    fmt.Println("Response:", string(body))
     // a.clients.CreateKeyS("EH_RSA_3072", "EH_INTERNAL_KEY")
     return "a", nil
 }
