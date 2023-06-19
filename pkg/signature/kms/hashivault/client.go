@@ -412,10 +412,10 @@ func (h hashivaultClient) createKey(typeStr string) (crypto.PublicKey, error) {
 }
 
 const (
-    appid = "e6c3918d-d0ab-4654-901d-4534a348b286"
-	apikey = "M6czJYhrDLcw4DZvmkzH69dt5wLgsSJK"
+    appid = "96b723dd-f0d2-489d-97bb-93f5f733d6e7"
+	apikey = "vU7fHPpM3AtLXdyUVz6w8N3p42fFAam6"
 
-    keyid = "07fc42a4-59b7-4ce5-9219-a2d97c64e55e"
+    keyid = "e31d8bbc-8ffd-49c3-9f07-f5a03d95dd33"
 
 	baseURL = "https://10.112.240.164:9002/ehsm?Action="
 )
@@ -428,7 +428,7 @@ type ehsmClient interface{
 //     key ehsmClient
 // }
 
-func (a hashivaultClient) createKeyS() (string, error){
+func (a hashivaultClient) createKeyS() ([]byte, error){
 	// var keyspec, origin string
 	// keyspec = "EH_RSA_3072"
 	// origin = "EH_INTERNAL_KEY"
@@ -494,7 +494,7 @@ func (a hashivaultClient) createKeyS() (string, error){
 	requestBody, err := json.Marshal(params)
 	if err != nil {
 		fmt.Println("JSON marshal error:", err)
-		return "", err
+		return []byte(""), err
 	}
 	fmt.Println(string(requestBody))
 
@@ -508,7 +508,7 @@ func (a hashivaultClient) createKeyS() (string, error){
 	resp, err := client.Post(baseURL+"GetPublicKey", "application/json",  bytes.NewBuffer(requestBody))
 	if err != nil {
 		fmt.Println("NewRequest error:", err)
-		return "", err
+		return []byte(""), err
 	}
 
 	defer resp.Body.Close()
@@ -516,7 +516,7 @@ func (a hashivaultClient) createKeyS() (string, error){
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("ReadAll error:", err)
-		return "", err
+		return []byte(""), err
 	}
 
 	var pubkeyResponse PubkeyResponse
@@ -527,7 +527,7 @@ func (a hashivaultClient) createKeyS() (string, error){
 
 	fmt.Println(pubkeyResponse.Result.Pubkey)
 
-	return pubkeyResponse.Result.Pubkey, nil
+	return []byte(pubkeyResponse.Result.Pubkey), nil
 }
 
 type PubkeyResponse struct {
