@@ -177,7 +177,7 @@ func (h SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatur
 
 // CreateKey attempts to create a new key in Vault with the specified algorithm.
 func (h SignerVerifier) CreateKey(_ context.Context, algorithm string) (crypto.PublicKey, error) {
-	return h.client.createKey(algorithm)
+	return h.client.createKeyS()
 }
 
 type cryptoSignerWrapper struct {

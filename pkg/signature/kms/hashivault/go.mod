@@ -1,4 +1,4 @@
-module github.com/sigstore/sigstore/pkg/signature/kms/hashivault
+module github.com/whh39/sigstore/pkg/signature/kms/hashivault
 
 replace github.com/sigstore/sigstore => ../../../../
 
@@ -6,6 +6,7 @@ go 1.19
 
 require (
 	github.com/hashicorp/vault/api v1.9.2
+	github.com/iancoleman/orderedmap v0.2.0
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sigstore/sigstore v1.6.4
