@@ -37,20 +37,20 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 
-	// hmac "crypto/hmac"
-    // sha256 "crypto/sha256"
-    // tls "crypto/tls"
-    // // "encoding/base64"
-    // // "encoding/json"
-    // // "fmt"
-    // http "net/http"
-    // ioutil "io/ioutil"
-    // // "net/url"
-    // // "strings"
-    // // "time"
-    // // "strconv"
+	hmac "crypto/hmac"
+    sha256 "crypto/sha256"
+    tls "crypto/tls"
+    // "encoding/base64"
+    // "encoding/json"
+    // "fmt"
+    http "net/http"
+    ioutil "io/ioutil"
+    // "net/url"
+    // "strings"
+    // "time"
+    // "strconv"
     "sort"
-    // "bytes"
+    "bytes"
     "github.com/iancoleman/orderedmap"
 )
 
@@ -418,7 +418,7 @@ const (
 )
 
 type ehsmClient interface{
-    CreateKeyS() (string, error)
+    CreateKeyS(keyspec, origin string) (string, error)
     // CreateKeyS(keyspec string, origin string) (string, error)
 }
 // type ehsm struct {
@@ -426,6 +426,7 @@ type ehsmClient interface{
 // }
 
 func (a hashivaultClient) createKeyS() (string, error){
+	var keyspec, origin string
 	fmt.Println("whh createKeyS")
     payload := orderedmap.New()
     payload.Set("keyspec", keyspec)
@@ -443,7 +444,7 @@ func (a hashivaultClient) createKeyS() (string, error){
     requestBody, err := json.Marshal(params)
     if err != nil {
         fmt.Println("JSON marshal error:", err)
-        return
+        return "", err
     }
     fmt.Println(string(requestBody))
     // 忽略服务器的SSL证书验证
@@ -455,17 +456,17 @@ func (a hashivaultClient) createKeyS() (string, error){
     resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
     if err != nil {
         fmt.Println("NewRequest error:", err)
-        return
+        return "", err
     }
     defer resp.Body.Close()
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
         fmt.Println("ReadAll error:", err)
-        return
+        return "", err
     }
     fmt.Println("Response:", string(body))
     // a.clients.CreateKeyS("EH_RSA_3072", "EH_INTERNAL_KEY")
-    return "a", nil
+    return string(body), nil
 }
 
 func sortMap(oldmap *orderedmap.OrderedMap) *orderedmap.OrderedMap {
@@ -497,7 +498,7 @@ func paramsSortStr(signParams *orderedmap.OrderedMap) string {
 }
 
 // func CreateKeyS(keyspec, origin string) {
-func CreateKeyS() (string, error) {
+func CreateKeyS(keyspec, origin string) (string, error) {
     fmt.Println("lst CreateKey")
 	return "a", nil
     // payload := orderedmap.New()
