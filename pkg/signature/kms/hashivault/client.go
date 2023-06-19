@@ -439,65 +439,77 @@ const (
 	PKCS1PublicKeyPEMType PEMType = "RSA PUBLIC KEY"
 )
 
-func (a hashivaultClient) createKeyS() (crypto.PublicKey, error){
+func (a hashivaultClient) createKeyS() (crypto.PublicKey, error) {
 
-	fmt.Println("Getpubkey")
+	// fmt.Println("Getpubkey")
 
-	payload := orderedmap.New()
-	payload.Set("keyid", keyid)
+	// payload := orderedmap.New()
+	// payload.Set("keyid", keyid)
 
-	params := orderedmap.New()
-	params.Set("appid", appid)
-	params.Set("payload", payload)
-	params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+	// params := orderedmap.New()
+	// params.Set("appid", appid)
+	// params.Set("payload", payload)
+	// params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
 
-	signString := paramsSortStr(params)
-	hmacSha256 := hmac.New(sha256.New, []byte(apikey))
-	hmacSha256.Write([]byte(signString))
-	sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
+	// signString := paramsSortStr(params)
+	// hmacSha256 := hmac.New(sha256.New, []byte(apikey))
+	// hmacSha256.Write([]byte(signString))
+	// sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
 
-	params.Set("sign", sign)
+	// params.Set("sign", sign)
 
-	// 将 params 转换为 JSON
-	requestBody, err := json.Marshal(params)
-	if err != nil {
-		fmt.Println("JSON marshal error:", err)
-		return []byte(""), err
-	}
-	fmt.Println(string(requestBody))
+	// // 将 params 转换为 JSON
+	// requestBody, err := json.Marshal(params)
+	// if err != nil {
+	// 	fmt.Println("JSON marshal error:", err)
+	// 	return []byte(""), err
+	// }
+	// fmt.Println(string(requestBody))
 
-	// 忽略服务器的SSL证书验证
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
+	// // 忽略服务器的SSL证书验证
+	// tr := &http.Transport{
+	// 	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	// }
+	// client := &http.Client{Transport: tr}
 
-	// 发送 POST 请求
-	resp, err := client.Post(baseURL+"GetPublicKey", "application/json",  bytes.NewBuffer(requestBody))
-	if err != nil {
-		fmt.Println("NewRequest error:", err)
-		return []byte(""), err
-	}
+	// // 发送 POST 请求
+	// resp, err := client.Post(baseURL+"GetPublicKey", "application/json",  bytes.NewBuffer(requestBody))
+	// if err != nil {
+	// 	fmt.Println("NewRequest error:", err)
+	// 	return []byte(""), err
+	// }
 
-	defer resp.Body.Close()
+	// defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("ReadAll error:", err)
-		return []byte(""), err
-	}
+	// body, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	fmt.Println("ReadAll error:", err)
+	// 	return []byte(""), err
+	// }
 
-	var pubkeyResponse PubkeyResponse
+	// var pubkeyResponse PubkeyResponse
 
-	str := string(body)
+	// str := string(body)
 
-	json.Unmarshal([]byte(str), &pubkeyResponse)
+	// json.Unmarshal([]byte(str), &pubkeyResponse)
 
-	fmt.Println(pubkeyResponse.Result.Pubkey)
+	// fmt.Println(pubkeyResponse.Result.Pubkey)
 
 	// return []byte(pubkeyResponse.Result.Pubkey), nil
-	pemBytes := []byte(pubkeyResponse.Result.Pubkey)
-
+	// pemBytes := []byte(pubkeyResponse.Result.Pubkey)
+	pemBytes := []byte("-----BEGIN RSA PUBLIC KEY-----\n
+	MIICCgKCAgEA2+pX6aaOEaB4ZIx+Mxh7IILSAVayZlN488h8o/9qRiwD0siV7fye\n
+	ouffZX0+FXobus05ZJQg1vBgdUFNDkvlB3o2ca/nUc+IaPxJbuUHf2rZ2t9wMHLR\n
+	8PlpRTseMYxSbmKXj/GnDZD4D06Sfhmb/+AWKbMjDpyDO93BVsndNadKnxTi0pqZ\n
+	uDD3kzg120EH4QqompM15v8OFh5cuvShpKQJuX9kvNkXZ4BI0LZbgOZgcvwu8OwV\n
+	hacNPCATVvBpVHnt5RJU/EqiW4MNTTLlhUC4UAfRjQbmiReXZdS1QVIXKt1yznRI\n
+	2NZ/bm+i5eVUeNv6ZMPrjq3gZ827k1+RFarUuZa+l6ahm34HPOqH0AhFNh1wYCvb\n
+	XIOYFS9IroRuQfKVlHLaFMgTQSJ7NhDy/jyuZ+RwRa1SuCsNcxo5EtrxeMivhqIJ\n
+	u3tAbeQEMxy2OgN2hR7JxsLBfNgqaZ4YyMPg8szV/duxwjKBB9BUCFtyXAGkLoiq\n
+	uo5gaJFm2GFj7sGtO23n1dI51hZ6Tc5n866CJSpQJMnAeRdJWkV3v2ZQIgWdVteI\n
+	IukLxtaFTMcjTV+BF0Jpi2pyFCxHApvhPScBuwjsESePu42sxQqjWFvaUpm7I1l5\n
+	5RF/gQIle7PpQm3vPnnMLqj9orIDNiQh3Cu9ZzaBmx314zqAxD++Zk0CAwEAAQ==\n
+	-----END RSA PUBLIC KEY-----\n")
 	derBytes, _ := pem.Decode(pemBytes)
 	if derBytes == nil {
 		return nil, errors.New("PEM decoding failed")
