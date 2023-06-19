@@ -417,7 +417,7 @@ type ehsmClient interface{
 
 func (a hashivaultClient) createKeyS() (string, error){
 	fmt.Println("whh createKeyS")
-    a.clients.CreateKeyS()
+    // a.clients.CreateKeyS()
     // a.clients.CreateKeyS("EH_RSA_3072", "EH_INTERNAL_KEY")
     return "a", nil
 }
@@ -452,7 +452,7 @@ func paramsSortStr(signParams *orderedmap.OrderedMap) string {
 
 // func CreateKeyS(keyspec, origin string) {
 func CreateKeyS() (string, error) {
-    fmt.Println("000 CreateKey")
+    fmt.Println("lst CreateKey")
 	return "a", nil
     // payload := orderedmap.New()
     // payload.Set("keyspec", keyspec)
