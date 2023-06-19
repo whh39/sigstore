@@ -37,20 +37,20 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 
-	hmac "crypto/hmac"
-    sha256 "crypto/sha256"
-    tls "crypto/tls"
-    // "encoding/base64"
-    // "encoding/json"
-    // "fmt"
-    http "net/http"
-    ioutil "io/ioutil"
-    // "net/url"
-    // "strings"
-    // "time"
-    // "strconv"
+	// hmac "crypto/hmac"
+    // sha256 "crypto/sha256"
+    // tls "crypto/tls"
+    // // "encoding/base64"
+    // // "encoding/json"
+    // // "fmt"
+    // http "net/http"
+    // ioutil "io/ioutil"
+    // // "net/url"
+    // // "strings"
+    // // "time"
+    // // "strconv"
     "sort"
-    "bytes"
+    // "bytes"
     "github.com/iancoleman/orderedmap"
 )
 
@@ -70,19 +70,19 @@ type hashivaultClient struct {
 }
 
 var (
-	errReference   = errors.New("kms specification should be in the format hashivault://<key>")
-	referenceRegex = regexp.MustCompile(`^hashivault://(?P<path>\w(([\w-.]+)?\w)?)$`)
-	prefixRegex    = regexp.MustCompile("^vault:v[0-9]+:")
+	errReference   = errors.New("kms specification should be in the format ehsm://<key>")
+	referenceRegex = regexp.MustCompile(`^ehsm://(?P<path>\w(([\w-.]+)?\w)?)$`)
+	prefixRegex    = regexp.MustCompile("^ehsm:v[0-9]+:")
 )
 
 const (
-	vaultV1DataPrefix = "vault:v1:"
+	vaultV1DataPrefix = "ehsm:v1:"
 
 	// use a consistent key for cache lookups
 	cacheKey = "signer"
 
 	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
-	ReferenceScheme = "hashivault://"
+	ReferenceScheme = "ehsm://"
 )
 
 // ValidReference returns a non-nil error if the reference string is invalid
@@ -153,6 +153,8 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	if transitSecretEnginePath == "" {
 		transitSecretEnginePath = "transit"
 	}
+
+	// var clients := 
 
 	hvClient := &hashivaultClient{
 		client:                  client,
@@ -406,15 +408,17 @@ const (
 )
 
 type ehsmClient interface{
-    CreateKeyS(keyspec string, origin string) (string, error)
+    CreateKeyS() (string, error)
+    // CreateKeyS(keyspec string, origin string) (string, error)
 }
 // type ehsm struct {
 //     key ehsmClient
 // }
 
 func (a hashivaultClient) createKeyS() (string, error){
-	fmt.Println("createKeyS")
-    a.clients.CreateKeyS("EH_RSA_3072", "EH_INTERNAL_KEY")
+	fmt.Println("whh createKeyS")
+    a.clients.CreateKeyS()
+    // a.clients.CreateKeyS("EH_RSA_3072", "EH_INTERNAL_KEY")
     return "a", nil
 }
 
@@ -445,43 +449,46 @@ func paramsSortStr(signParams *orderedmap.OrderedMap) string {
     }
     return str
 }
-func CreateKeyS(keyspec, origin string) {
+
+// func CreateKeyS(keyspec, origin string) {
+func CreateKeyS() (string, error) {
     fmt.Println("CreateKey")
-    payload := orderedmap.New()
-    payload.Set("keyspec", keyspec)
-    payload.Set("origin", origin)
-    params := orderedmap.New()
-    params.Set("appid", appid)
-    params.Set("payload", payload)
-    params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
-    signString := paramsSortStr(params)
-    hmacSha256 := hmac.New(sha256.New, []byte(apikey))
-    hmacSha256.Write([]byte(signString))
-    sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
-    params.Set("sign", sign)
-    // 将 params 转换为 JSON
-    requestBody, err := json.Marshal(params)
-    if err != nil {
-        fmt.Println("JSON marshal error:", err)
-        return
-    }
-    fmt.Println(string(requestBody))
-    // 忽略服务器的SSL证书验证
-    tr := &http.Transport{
-        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-    }
-    client := &http.Client{Transport: tr}
-    // 发送 POST 请求
-    resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
-    if err != nil {
-        fmt.Println("NewRequest error:", err)
-        return
-    }
-    defer resp.Body.Close()
-    body, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-        fmt.Println("ReadAll error:", err)
-        return
-    }
-    fmt.Println("Response:", string(body))
+	return "a", nil
+    // payload := orderedmap.New()
+    // payload.Set("keyspec", keyspec)
+    // payload.Set("origin", origin)
+    // params := orderedmap.New()
+    // params.Set("appid", appid)
+    // params.Set("payload", payload)
+    // params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+    // signString := paramsSortStr(params)
+    // hmacSha256 := hmac.New(sha256.New, []byte(apikey))
+    // hmacSha256.Write([]byte(signString))
+    // sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
+    // params.Set("sign", sign)
+    // // 将 params 转换为 JSON
+    // requestBody, err := json.Marshal(params)
+    // if err != nil {
+    //     fmt.Println("JSON marshal error:", err)
+    //     return
+    // }
+    // fmt.Println(string(requestBody))
+    // // 忽略服务器的SSL证书验证
+    // tr := &http.Transport{
+    //     TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    // }
+    // client := &http.Client{Transport: tr}
+    // // 发送 POST 请求
+    // resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
+    // if err != nil {
+    //     fmt.Println("NewRequest error:", err)
+    //     return
+    // }
+    // defer resp.Body.Close()
+    // body, err := ioutil.ReadAll(resp.Body)
+    // if err != nil {
+    //     fmt.Println("ReadAll error:", err)
+    //     return
+    // }
+    // fmt.Println("Response:", string(body))
 }
