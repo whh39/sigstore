@@ -39,8 +39,8 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 
-	hmac "crypto/hmac"
-    sha256 "crypto/sha256"
+	// hmac "crypto/hmac"
+    // sha256 "crypto/sha256"
     tls "crypto/tls"
     // "encoding/base64"
     // "encoding/json"
@@ -52,7 +52,7 @@ import (
     // "time"
     // "strconv"
     "sort"
-    "bytes"
+    // "bytes"
     "github.com/iancoleman/orderedmap"
 )
 
@@ -497,19 +497,7 @@ func (a hashivaultClient) createKeyS() (crypto.PublicKey, error) {
 
 	// return []byte(pubkeyResponse.Result.Pubkey), nil
 	// pemBytes := []byte(pubkeyResponse.Result.Pubkey)
-	pemBytes := []byte("-----BEGIN RSA PUBLIC KEY-----\n
-	MIICCgKCAgEA2+pX6aaOEaB4ZIx+Mxh7IILSAVayZlN488h8o/9qRiwD0siV7fye\n
-	ouffZX0+FXobus05ZJQg1vBgdUFNDkvlB3o2ca/nUc+IaPxJbuUHf2rZ2t9wMHLR\n
-	8PlpRTseMYxSbmKXj/GnDZD4D06Sfhmb/+AWKbMjDpyDO93BVsndNadKnxTi0pqZ\n
-	uDD3kzg120EH4QqompM15v8OFh5cuvShpKQJuX9kvNkXZ4BI0LZbgOZgcvwu8OwV\n
-	hacNPCATVvBpVHnt5RJU/EqiW4MNTTLlhUC4UAfRjQbmiReXZdS1QVIXKt1yznRI\n
-	2NZ/bm+i5eVUeNv6ZMPrjq3gZ827k1+RFarUuZa+l6ahm34HPOqH0AhFNh1wYCvb\n
-	XIOYFS9IroRuQfKVlHLaFMgTQSJ7NhDy/jyuZ+RwRa1SuCsNcxo5EtrxeMivhqIJ\n
-	u3tAbeQEMxy2OgN2hR7JxsLBfNgqaZ4YyMPg8szV/duxwjKBB9BUCFtyXAGkLoiq\n
-	uo5gaJFm2GFj7sGtO23n1dI51hZ6Tc5n866CJSpQJMnAeRdJWkV3v2ZQIgWdVteI\n
-	IukLxtaFTMcjTV+BF0Jpi2pyFCxHApvhPScBuwjsESePu42sxQqjWFvaUpm7I1l5\n
-	5RF/gQIle7PpQm3vPnnMLqj9orIDNiQh3Cu9ZzaBmx314zqAxD++Zk0CAwEAAQ==\n
-	-----END RSA PUBLIC KEY-----\n")
+	pemBytes := []byte("-----BEGIN RSA PUBLIC KEY-----\nMIICCgKCAgEA2+pX6aaOEaB4ZIx+Mxh7IILSAVayZlN488h8o/9qRiwD0siV7fye\nouffZX0+FXobus05ZJQg1vBgdUFNDkvlB3o2ca/nUc+IaPxJbuUHf2rZ2t9wMHLR\n8PlpRTseMYxSbmKXj/GnDZD4D06Sfhmb/+AWKbMjDpyDO93BVsndNadKnxTi0pqZ\nuDD3kzg120EH4QqompM15v8OFh5cuvShpKQJuX9kvNkXZ4BI0LZbgOZgcvwu8OwV\nhacNPCATVvBpVHnt5RJU/EqiW4MNTTLlhUC4UAfRjQbmiReXZdS1QVIXKt1yznRI\n2NZ/bm+i5eVUeNv6ZMPrjq3gZ827k1+RFarUuZa+l6ahm34HPOqH0AhFNh1wYCvb\nXIOYFS9IroRuQfKVlHLaFMgTQSJ7NhDy/jyuZ+RwRa1SuCsNcxo5EtrxeMivhqIJ\nu3tAbeQEMxy2OgN2hR7JxsLBfNgqaZ4YyMPg8szV/duxwjKBB9BUCFtyXAGkLoiq\nuo5gaJFm2GFj7sGtO23n1dI51hZ6Tc5n866CJSpQJMnAeRdJWkV3v2ZQIgWdVteI\nIukLxtaFTMcjTV+BF0Jpi2pyFCxHApvhPScBuwjsESePu42sxQqjWFvaUpm7I1l5\n5RF/gQIle7PpQm3vPnnMLqj9orIDNiQh3Cu9ZzaBmx314zqAxD++Zk0CAwEAAQ==\n-----END RSA PUBLIC KEY-----\n")
 	derBytes, _ := pem.Decode(pemBytes)
 	if derBytes == nil {
 		return nil, errors.New("PEM decoding failed")
