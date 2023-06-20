@@ -36,8 +36,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
-
-	"github.com/whh39/ehsm/go"
 )
 
 func init() {
@@ -55,19 +53,19 @@ type hashivaultClient struct {
 }
 
 var (
-	errReference   = errors.New("kms specification should be in the format ehsm://<key>")
-	referenceRegex = regexp.MustCompile(`^ehsm://(?P<path>\w(([\w-.]+)?\w)?)$`)
-	prefixRegex    = regexp.MustCompile("^ehsm:v[0-9]+:")
+	errReference   = errors.New("kms specification should be in the format hashivault://<key>")
+	referenceRegex = regexp.MustCompile(`^hashivault://(?P<path>\w(([\w-.]+)?\w)?)$`)
+	prefixRegex    = regexp.MustCompile("^vault:v[0-9]+:")
 )
 
 const (
-	vaultV1DataPrefix = "ehsm:v1:"
+	vaultV1DataPrefix = "vault:v1:"
 
 	// use a consistent key for cache lookups
 	cacheKey = "signer"
 
 	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
-	ReferenceScheme = "ehsm://"
+	ReferenceScheme = "hashivault://"
 )
 
 // ValidReference returns a non-nil error if the reference string is invalid
@@ -394,13 +392,4 @@ func (h hashivaultClient) createKey(typeStr string) (crypto.PublicKey, error) {
 		return nil, fmt.Errorf("failed to create transit key: %w", err)
 	}
 	return h.public()
-}
-
-// type ehsm interface{
-// 	Getpubkey() (crypto.PublicKey, error)
-// }
-
-
-func (a hashivaultClient) createKeyS() (crypto.PublicKey, error) {
-	return ehsm.Getpubkey()
 }
