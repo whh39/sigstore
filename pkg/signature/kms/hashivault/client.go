@@ -47,7 +47,6 @@ func init() {
 }
 
 type hashivaultClient struct {
-	// clients                 ehsm
 	client                  *vault.Client
 	keyPath                 string
 	transitSecretEnginePath string
@@ -104,24 +103,24 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	}
 
 	if address == "" {
-		address = os.Getenv("VAULT_ADDR")
+		address = os.Getenv("EHSM_ADDR")
 	}
 	if address == "" {
-		return nil, errors.New("VAULT_ADDR is not set")
+		return nil, errors.New("EHSM_ADDR is not set")
 	}
 
 	client, err := vault.NewClient(&vault.Config{
 		Address: address,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("new vault client: %w", err)
+		return nil, fmt.Errorf("new ehsm client: %w", err)
 	}
 
 	if token == "" {
-		token = os.Getenv("VAULT_TOKEN")
+		token = os.Getenv("EHSM_APIKEY")
 	}
 	if token == "" {
-		log.Printf("VAULT_TOKEN is not set, trying to read token from file at path ~/.vault-token")
+		log.Printf("EHSM_APIKEY is not set, trying to read token from file at path ~/.vault-token")
 		homeDir, err := homedir.Dir()
 		if err != nil {
 			return nil, fmt.Errorf("get home directory: %w", err)
