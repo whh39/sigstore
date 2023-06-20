@@ -11,6 +11,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sigstore/sigstore v1.7.0
 	github.com/stretchr/testify v1.8.4
+	github.com/whh39/ehsm/go v1.6.3
 )
 
 require (

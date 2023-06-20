@@ -19,8 +19,6 @@ package hashivault
 import (
 	"context"
 	"crypto"
-	"crypto/x509"
-	"encoding/pem"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -39,21 +37,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 
-	// hmac "crypto/hmac"
-    // sha256 "crypto/sha256"
-    tls "crypto/tls"
-    // "encoding/base64"
-    // "encoding/json"
-    // "fmt"
-    http "net/http"
-    ioutil "io/ioutil"
-    // "net/url"
-    // "strings"
-    // "time"
-    // "strconv"
-    "sort"
-    // "bytes"
-    "github.com/iancoleman/orderedmap"
+	"github.com/whh39/ehsm/go"
 )
 
 func init() {
@@ -63,7 +47,7 @@ func init() {
 }
 
 type hashivaultClient struct {
-	clients                 ehsmClient
+	// clients                 ehsm
 	client                  *vault.Client
 	keyPath                 string
 	transitSecretEnginePath string
@@ -413,224 +397,11 @@ func (h hashivaultClient) createKey(typeStr string) (crypto.PublicKey, error) {
 	return h.public()
 }
 
-const (
-    appid = "96b723dd-f0d2-489d-97bb-93f5f733d6e7"
-	apikey = "vU7fHPpM3AtLXdyUVz6w8N3p42fFAam6"
-
-    keyid = "76315a76-c5ea-488e-a950-9cafecf0e5fb"
-
-	baseURL = "https://10.112.240.164:9002/ehsm?Action="
-)
-
-type ehsmClient interface{
-    CreateKeyS(keyspec, origin string) (string, error)
-    // CreateKeyS(keyspec string, origin string) (string, error)
-}
-// type ehsm struct {
-//     key ehsmClient
+// type ehsm interface{
+// 	Getpubkey() (crypto.PublicKey, error)
 // }
 
-type PEMType string
-
-const (
-	// PublicKeyPEMType is the string "PUBLIC KEY" to be used during PEM encoding and decoding
-	PublicKeyPEMType PEMType = "PUBLIC KEY"
-	// PKCS1PublicKeyPEMType is the string "RSA PUBLIC KEY" used to parse PKCS#1-encoded public keys
-	PKCS1PublicKeyPEMType PEMType = "RSA PUBLIC KEY"
-)
 
 func (a hashivaultClient) createKeyS() (crypto.PublicKey, error) {
-
-	// fmt.Println("Getpubkey")
-
-	// payload := orderedmap.New()
-	// payload.Set("keyid", keyid)
-
-	// params := orderedmap.New()
-	// params.Set("appid", appid)
-	// params.Set("payload", payload)
-	// params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
-
-	// signString := paramsSortStr(params)
-	// hmacSha256 := hmac.New(sha256.New, []byte(apikey))
-	// hmacSha256.Write([]byte(signString))
-	// sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
-
-	// params.Set("sign", sign)
-
-	// // 将 params 转换为 JSON
-	// requestBody, err := json.Marshal(params)
-	// if err != nil {
-	// 	fmt.Println("JSON marshal error:", err)
-	// 	return []byte(""), err
-	// }
-	// fmt.Println(string(requestBody))
-
-	// // 忽略服务器的SSL证书验证
-	// tr := &http.Transport{
-	// 	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	// }
-	// client := &http.Client{Transport: tr}
-
-	// // 发送 POST 请求
-	// resp, err := client.Post(baseURL+"GetPublicKey", "application/json",  bytes.NewBuffer(requestBody))
-	// if err != nil {
-	// 	fmt.Println("NewRequest error:", err)
-	// 	return []byte(""), err
-	// }
-
-	// defer resp.Body.Close()
-
-	// body, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	fmt.Println("ReadAll error:", err)
-	// 	return []byte(""), err
-	// }
-
-	// var pubkeyResponse PubkeyResponse
-
-	// str := string(body)
-
-	// json.Unmarshal([]byte(str), &pubkeyResponse)
-
-	// fmt.Println(pubkeyResponse.Result.Pubkey)
-
-	// return []byte(pubkeyResponse.Result.Pubkey), nil
-	// pemBytes := []byte(pubkeyResponse.Result.Pubkey)
-	pemBytes := []byte("-----BEGIN RSA PUBLIC KEY-----\nMIICCgKCAgEA2+pX6aaOEaB4ZIx+Mxh7IILSAVayZlN488h8o/9qRiwD0siV7fye\nouffZX0+FXobus05ZJQg1vBgdUFNDkvlB3o2ca/nUc+IaPxJbuUHf2rZ2t9wMHLR\n8PlpRTseMYxSbmKXj/GnDZD4D06Sfhmb/+AWKbMjDpyDO93BVsndNadKnxTi0pqZ\nuDD3kzg120EH4QqompM15v8OFh5cuvShpKQJuX9kvNkXZ4BI0LZbgOZgcvwu8OwV\nhacNPCATVvBpVHnt5RJU/EqiW4MNTTLlhUC4UAfRjQbmiReXZdS1QVIXKt1yznRI\n2NZ/bm+i5eVUeNv6ZMPrjq3gZ827k1+RFarUuZa+l6ahm34HPOqH0AhFNh1wYCvb\nXIOYFS9IroRuQfKVlHLaFMgTQSJ7NhDy/jyuZ+RwRa1SuCsNcxo5EtrxeMivhqIJ\nu3tAbeQEMxy2OgN2hR7JxsLBfNgqaZ4YyMPg8szV/duxwjKBB9BUCFtyXAGkLoiq\nuo5gaJFm2GFj7sGtO23n1dI51hZ6Tc5n866CJSpQJMnAeRdJWkV3v2ZQIgWdVteI\nIukLxtaFTMcjTV+BF0Jpi2pyFCxHApvhPScBuwjsESePu42sxQqjWFvaUpm7I1l5\n5RF/gQIle7PpQm3vPnnMLqj9orIDNiQh3Cu9ZzaBmx314zqAxD++Zk0CAwEAAQ==\n-----END RSA PUBLIC KEY-----\n")
-	derBytes, _ := pem.Decode(pemBytes)
-	if derBytes == nil {
-		return nil, errors.New("PEM decoding failed")
-	}
-	switch derBytes.Type {
-	case string(PublicKeyPEMType):
-		return x509.ParsePKIXPublicKey(derBytes.Bytes)
-	case string(PKCS1PublicKeyPEMType):
-		return x509.ParsePKCS1PublicKey(derBytes.Bytes)
-	default:
-		return nil, fmt.Errorf("unknown Public key PEM file type: %v. Are you passing the correct public key?",
-			derBytes.Type)
-	}
-}
-
-type PubkeyResponse struct {
-	Code int `json:"code"`
-	Result struct {
-		Keyid string `json:"keyid"`
-		Pubkey string `json:"pubkey"`
-	} `json:"result"`
-}
-
-func sortMap(oldmap *orderedmap.OrderedMap) *orderedmap.OrderedMap {
-    newmap := orderedmap.New()
-    keys := oldmap.Keys()
-    sort.Strings(keys)
-    for _, key := range keys {
-        value, _ := oldmap.Get(key)
-        newmap.Set(key, value)
-    }
-    return newmap
-}
-func paramsSortStr(signParams *orderedmap.OrderedMap) string {
-    var str string
-    sortedSignParams := sortMap(signParams)
-    for _, k := range sortedSignParams.Keys() {
-        v, _ := sortedSignParams.Get(k)
-        if k == "payload" {
-            payload := v.(*orderedmap.OrderedMap)
-            str += "&" + k + "=" + paramsSortStr(payload)
-        } else {
-            str += fmt.Sprintf("&%s=%v", k, v)
-        }
-    }
-    if len(str) > 0 {
-        str = str[1:] // Remove leading "&"
-    }
-    return str
-}
-
-// func CreateKeyS(keyspec, origin string) {
-func CreateKeyS(keyspec, origin string) (string, error) {
-    fmt.Println("lst CreateKey")
-	return "a", nil
-    // payload := orderedmap.New()
-    // payload.Set("keyspec", keyspec)
-    // payload.Set("origin", origin)
-    // params := orderedmap.New()
-    // params.Set("appid", appid)
-    // params.Set("payload", payload)
-    // params.Set("timestamp", strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
-    // signString := paramsSortStr(params)
-    // hmacSha256 := hmac.New(sha256.New, []byte(apikey))
-    // hmacSha256.Write([]byte(signString))
-    // sign := base64.StdEncoding.EncodeToString(hmacSha256.Sum(nil))
-    // params.Set("sign", sign)
-    // // 将 params 转换为 JSON
-    // requestBody, err := json.Marshal(params)
-    // if err != nil {
-    //     fmt.Println("JSON marshal error:", err)
-    //     return
-    // }
-    // fmt.Println(string(requestBody))
-    // // 忽略服务器的SSL证书验证
-    // tr := &http.Transport{
-    //     TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-    // }
-    // client := &http.Client{Transport: tr}
-    // // 发送 POST 请求
-    // resp, err := client.Post(baseURL+"CreateKey", "application/json",  bytes.NewBuffer(requestBody))
-    // if err != nil {
-    //     fmt.Println("NewRequest error:", err)
-    //     return
-    // }
-    // defer resp.Body.Close()
-    // body, err := ioutil.ReadAll(resp.Body)
-    // if err != nil {
-    //     fmt.Println("ReadAll error:", err)
-    //     return
-    // }
-    // fmt.Println("Response:", string(body))
-}
-
-func Enroll() {
-	// 创建一个不安全的Transport
-    tr := &http.Transport{
-        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-    }
-
-	// 创建一个不安全的Client
-    client := &http.Client{Transport: tr}
-
-    // 创建请求对象
-    req, err := http.NewRequest("GET", "https://10.112.240.169:9000/ehsm?Action=Enroll", nil)
-    if err != nil {
-        panic(err)
-    }
-
-    // 设置请求头部
-    req.Header.Set("Accept", "application/json")
-
-    // 发送请求
-    resp, err := client.Do(req)
-    if err != nil {
-        panic(err)
-    }
-    defer resp.Body.Close()
-
-    // 读取响应内容
-    body, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-        panic(err)
-    }
-	fmt.Printf(string(body))
-
-    // 解析JSON响应体
-	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		panic(err)
-	}
-
-	// 输出响应体
-	fmt.Printf("YYYY--%+v\n", data)
+	return ehsm.Getpubkey()
 }
