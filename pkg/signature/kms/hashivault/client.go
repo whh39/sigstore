@@ -47,7 +47,6 @@ func init() {
 }
 
 type hashivaultClient struct {
-	// clients                 ehsm
 	client                  *vault.Client
 	keyPath                 string
 	transitSecretEnginePath string

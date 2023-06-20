@@ -76,7 +76,6 @@ github.com/ryanuber/columnize v2.1.0+incompatible/go.mod h1:sm1tb6uqfes/u+d4ooFo
 github.com/ryanuber/go-glob v1.0.0 h1:iQh3xXAumdQ+4Ufa5b25cRpC5TYKlno6hsv6Cb3pkBk=
 github.com/ryanuber/go-glob v1.0.0/go.mod h1:807d1WSdnB0XRJzKNil9Om6lcp/3a0v4qIHxIXzX/Yc=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
-github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
@@ -86,10 +85,8 @@ github.com/theupdateframework/go-tuf v0.5.2 h1:habfDzTmpbzBLIFGWa2ZpVhYvFBoK0C1o
 github.com/theupdateframework/go-tuf v0.5.2/go.mod h1:SyMV5kg5n4uEclsyxXJZI2UxPFJNDc4Y+r7wv+MlvTA=
 github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 h1:e/5i7d4oYZ+C1wj2THlRK+oAhjeS/TRQwMfkIuet3w0=
 github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399/go.mod h1:LdwHTNJT99C5fTAzDz0ud328OgXz+gierycbcIx2fRs=
-github.com/whh39/ehsm/go v1.6.1 h1:sVxTfjC+Z2EKHIdr+7zQwfRksz/piykbweocG86Zab8=
-github.com/whh39/ehsm/go v1.6.1/go.mod h1:THDd+WGbqwZNadq7wKAi912KMszCumrn20H4s1GCwAQ=
-github.com/whh39/ehsm/go v1.6.3 h1:bAm13yJ4yFiBi1rWQbVDjNO4Ri1tyzTO2jPRHDsaa04=
-github.com/whh39/ehsm/go v1.6.3/go.mod h1:THDd+WGbqwZNadq7wKAi912KMszCumrn20H4s1GCwAQ=
+github.com/whh39/ehsm/go v1.6.6 h1:dvD5IHzZAb1onGIoASThYMhjIJwFa6ydkPRNkDcFLcE=
+github.com/whh39/ehsm/go v1.6.6/go.mod h1:THDd+WGbqwZNadq7wKAi912KMszCumrn20H4s1GCwAQ=
 go.opentelemetry.io/otel v1.15.0 h1:NIl24d4eiLJPM0vKn4HjLYM+UZf6gSfi9Z+NmCxkWbk=
 go.opentelemetry.io/otel/trace v1.15.0 h1:5Fwje4O2ooOxkfyqI/kJwxWotggDLix4BSAvpE1wlpo=
 go.uber.org/goleak v1.1.10 h1:z+mqJhf6ss6BSfSM671tgKyZBFPTTJM+HLxnhPC3wu0=
