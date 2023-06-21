@@ -1,19 +1,3 @@
-//
-// Copyright 2021 The Sigstore Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package hashivault implement the interface with hashivault kms service
 package ehsm
 
 import (
@@ -46,7 +30,7 @@ func init() {
 	})
 }
 
-type hashivaultClient struct {
+type ehsmClient struct {
 	client                  *vault.Client
 	keyPath                 string
 	transitSecretEnginePath string
@@ -91,7 +75,7 @@ func parseReference(resourceID string) (keyPath string, err error) {
 	return
 }
 
-func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID string, keyVersion uint64) (*hashivaultClient, error) {
+func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string, keyVersion uint64) (*ehsmClient, error) {
 	fmt.Println("whh newHashivaultClient")
 	if err := ValidReference(keyResourceID); err != nil {
 		return nil, err
@@ -135,16 +119,14 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	}
 	client.SetToken(token)
 
-	if transitSecretEnginePath == "" {
-		transitSecretEnginePath = os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
-	}
+	// if transitSecretEnginePath == "" {
+	// 	transitSecretEnginePath = os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
+	// }
 	if transitSecretEnginePath == "" {
 		transitSecretEnginePath = "transit"
 	}
 
-	// var clients := 
-
-	hvClient := &hashivaultClient{
+	ehsmClient := &ehsmClient{
 		client:                  client,
 		keyPath:                 keyPath,
 		transitSecretEnginePath: transitSecretEnginePath,
@@ -154,41 +136,10 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 		keyVersion: keyVersion,
 	}
 
-	return hvClient, nil
+	return ehsmClient, nil
 }
 
-func oidcLogin(_ context.Context, address, path, role, token string) (string, error) {
-	fmt.Println("whh oidcLogin")
-	if address == "" {
-		address = os.Getenv("VAULT_ADDR")
-	}
-	if address == "" {
-		return "", errors.New("VAULT_ADDR is not set")
-	}
-	if path == "" {
-		path = "jwt"
-	}
-
-	client, err := vault.NewClient(&vault.Config{
-		Address: address,
-	})
-	if err != nil {
-		return "", fmt.Errorf("new vault client: %w", err)
-	}
-
-	loginData := map[string]interface{}{
-		"role": role,
-		"jwt":  token,
-	}
-	fullpath := fmt.Sprintf("auth/%s/login", path)
-	resp, err := client.Logical().Write(fullpath, loginData)
-	if err != nil {
-		return "", fmt.Errorf("vault oidc login: %w", err)
-	}
-	return resp.TokenID()
-}
-
-func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, error) {
+func (h *ehsmClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, error) {
 	fmt.Println("whh fetchPublicKey")
 	client := h.client.Logical()
 
@@ -242,7 +193,7 @@ func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, 
 	return cryptoutils.UnmarshalPEMToPublicKey([]byte(strPublicKeyPem))
 }
 
-func (h *hashivaultClient) public() (crypto.PublicKey, error) {
+func (h *ehsmClient) public() (crypto.PublicKey, error) {
 	fmt.Println("whh public")
 	var lerr error
 	loader := ttlcache.LoaderFunc[string, crypto.PublicKey](
@@ -261,7 +212,7 @@ func (h *hashivaultClient) public() (crypto.PublicKey, error) {
 	return item.Value(), lerr
 }
 
-func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
+func (h ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
 	fmt.Println("whh sign")
 	client := h.client.Logical()
 
@@ -295,7 +246,7 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 	return vaultDecode(encodedSignature, keyVersionUsedPtr)
 }
 
-func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
+func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
 	fmt.Println("whh verify")
 	client := h.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
@@ -385,22 +336,6 @@ func hashString(h crypto.Hash) string {
 	return hashStr
 }
 
-func (h hashivaultClient) createKey(typeStr string) (crypto.PublicKey, error) {
-	client := h.client.Logical()
-
-	if _, err := client.Write(fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath), map[string]interface{}{
-		"type": typeStr,
-	}); err != nil {
-		return nil, fmt.Errorf("failed to create transit key: %w", err)
-	}
-	return h.public()
-}
-
-// type ehsm interface{
-// 	Getpubkey() (crypto.PublicKey, error)
-// }
-
-
-func (a hashivaultClient) createKeyS() (crypto.PublicKey, error) {
+func (a ehsmClient) createKeyS() (crypto.PublicKey, error) {
 	return ehsm.Getpubkey()
 }

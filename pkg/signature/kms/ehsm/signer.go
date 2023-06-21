@@ -1,18 +1,3 @@
-//
-// Copyright 2021 The Sigstore Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package ehsm
 
 import (
@@ -60,7 +45,7 @@ var hvSupportedHashFuncs = []crypto.Hash{
 // SignerVerifier creates and verifies digital signatures over a message using Hashicorp Vault KMS service
 type SignerVerifier struct {
 	hashFunc crypto.Hash
-	client   *hashivaultClient
+	client   *ehsmClient
 }
 
 // LoadSignerVerifier generates signatures using the specified key object in Vault and hash algorithm.
@@ -87,13 +72,7 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signa
 		}
 	}
 
-	if rpcAuth.OIDC.Token != "" {
-		rpcAuth.Token, err = oidcLogin(ctx, rpcAuth.Address, rpcAuth.OIDC.Path, rpcAuth.OIDC.Role, rpcAuth.OIDC.Token)
-		if err != nil {
-			return nil, err
-		}
-	}
-	h.client, err = newHashivaultClient(rpcAuth.Address, rpcAuth.Token, rpcAuth.Path, referenceStr, keyVersionUint)
+	h.client, err = newEhsmClient(rpcAuth.Address, rpcAuth.Token, rpcAuth.Path, referenceStr, keyVersionUint)
 	if err != nil {
 		return nil, err
 	}
@@ -223,11 +202,11 @@ func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 }
 
 // SupportedAlgorithms returns the list of algorithms supported by the Hashicorp Vault service
-func (h *SignerVerifier) SupportedAlgorithms() []string {
+func (*SignerVerifier) SupportedAlgorithms() []string {
 	return hvSupportedAlgorithms
 }
 
 // DefaultAlgorithm returns the default algorithm for the Hashicorp Vault service
-func (h *SignerVerifier) DefaultAlgorithm() string {
+func (*SignerVerifier) DefaultAlgorithm() string {
 	return AlgorithmECDSAP256
 }
