@@ -8,8 +8,8 @@ require (
 	github.com/hashicorp/vault/api v1.9.2
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/sigstore/sigstore v1.7.0
-	github.com/whh39/ehsm/go v1.6.6
+	github.com/sigstore/sigstore v1.7.1
+	github.com/whh39/ehsm/go v1.6.8
 )
 
 require (
@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/iancoleman/orderedmap v0.2.0 // indirect
-	github.com/letsencrypt/boulder v0.0.0-20230613171540-824417f6c066 // indirect
+	github.com/letsencrypt/boulder v0.0.0-20230621172626-11fe943577ad // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect

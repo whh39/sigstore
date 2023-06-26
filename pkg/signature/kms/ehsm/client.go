@@ -337,5 +337,6 @@ func hashString(h crypto.Hash) string {
 }
 
 func (a ehsmClient) createKeyS() (crypto.PublicKey, error) {
-	return ehsm.Getpubkey()
+	key := ehsm.CreateKey("EH_RSA_4096", "EH_INTERNAL_KEY")
+	return ehsm.Getpubkey(key)
 }

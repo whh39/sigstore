@@ -81,7 +81,7 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signa
 	case 0, crypto.SHA224, crypto.SHA256, crypto.SHA384, crypto.SHA512:
 		h.hashFunc = hashFunc
 	default:
-		return nil, errors.New("hash function not supported by Hashivault")
+		return nil, errors.New("hash function not supported by Ehsm")
 	}
 
 	return h, nil
