@@ -15,26 +15,28 @@ import (
 // Taken from https://www.vaultproject.io/api/secret/transit
 // nolint:revive
 const (
-	AlgorithmECDSAP256 = "ecdsa-p256"
-	AlgorithmECDSAP384 = "ecdsa-p384"
-	AlgorithmECDSAP521 = "ecdsa-p521"
-	AlgorithmED25519   = "ed25519"
-	AlgorithmRSA2048   = "rsa-2048"
-	AlgorithmRSA3072   = "rsa-3072"
-	AlgorithmRSA4096   = "rsa-4096"
+	AlgorithmEHRSA4096 = "EH_RSA_4096"
+	AlgorithmEHRSA3072 = "EH_RSA_3072"
+	AlgorithmEHRSA2048 = "EH_RSA_2048"
+	AlgorithmEHECP256   = "EH_EC_P256"
+	AlgorithmEHECP224   = "EH_EC_P224"
+	AlgorithmEHECP384   = "EH_EC_P384"
+	AlgorithmEHECP521   = "EH_EC_P521"
+	AlgorithmEMSM2   = "EH_SM2"
 )
 
-var hvSupportedAlgorithms = []string{
-	AlgorithmECDSAP256,
-	AlgorithmECDSAP384,
-	AlgorithmECDSAP521,
-	AlgorithmED25519,
-	AlgorithmRSA2048,
-	AlgorithmRSA3072,
-	AlgorithmRSA4096,
+var ehsmSupportedAlgorithms = []string{
+	AlgorithmEHRSA4096,
+	AlgorithmEHRSA3072,
+	AlgorithmEHRSA2048,
+	AlgorithmEHECP256,
+	AlgorithmEHECP224,
+	AlgorithmEHECP384,
+	AlgorithmEHECP521,
+	AlgorithmEMSM2,
 }
 
-var hvSupportedHashFuncs = []crypto.Hash{
+var ehsmSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA224,
 	crypto.SHA256,
 	crypto.SHA384,
@@ -42,7 +44,7 @@ var hvSupportedHashFuncs = []crypto.Hash{
 	crypto.Hash(0),
 }
 
-// SignerVerifier creates and verifies digital signatures over a message using Hashicorp Vault KMS service
+// SignerVerifier creates and verifies digital signatures over a message using EHSM KMS service
 type SignerVerifier struct {
 	hashFunc crypto.Hash
 	client   *ehsmClient
@@ -105,7 +107,7 @@ func (h SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOpt
 		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
 
-	digest, hf, err := signature.ComputeDigestForSigning(message, signerOpts.HashFunc(), hvSupportedHashFuncs, opts...)
+	digest, hf, err := signature.ComputeDigestForSigning(message, signerOpts.HashFunc(), ehsmSupportedHashFuncs, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +118,7 @@ func (h SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOpt
 // PublicKey returns the public key that can be used to verify signatures created by
 // this signer. All options provided in arguments to this method are ignored.
 func (h SignerVerifier) PublicKey(_ ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	return h.client.public()
+	return h.client.fetchPublicKey()
 }
 
 // VerifySignature verifies the signature for the given message. Unless provided
@@ -141,7 +143,7 @@ func (h SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatur
 		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
 
-	digest, hf, err := signature.ComputeDigestForVerifying(message, signerOpts.HashFunc(), hvSupportedHashFuncs, opts...)
+	digest, hf, err := signature.ComputeDigestForVerifying(message, signerOpts.HashFunc(), ehsmSupportedHashFuncs, opts...)
 	if err != nil {
 		return err
 	}
@@ -156,7 +158,7 @@ func (h SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatur
 
 // CreateKey attempts to create a new key in Vault with the specified algorithm.
 func (h SignerVerifier) CreateKey(_ context.Context, algorithm string) (crypto.PublicKey, error) {
-	return h.client.createKeyS()
+	return h.client.createKey(algorithm)
 }
 
 type cryptoSignerWrapper struct {
@@ -201,12 +203,12 @@ func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	return csw, h.hashFunc, nil
 }
 
-// SupportedAlgorithms returns the list of algorithms supported by the Hashicorp Vault service
+// SupportedAlgorithms returns the list of algorithms supported by the EHSM service
 func (*SignerVerifier) SupportedAlgorithms() []string {
-	return hvSupportedAlgorithms
+	return ehsmSupportedAlgorithms
 }
 
-// DefaultAlgorithm returns the default algorithm for the Hashicorp Vault service
+// DefaultAlgorithm returns the default algorithm for the EHSM service
 func (*SignerVerifier) DefaultAlgorithm() string {
-	return AlgorithmECDSAP256
+	return AlgorithmEHRSA4096
 }

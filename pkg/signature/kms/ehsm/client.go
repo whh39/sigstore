@@ -4,24 +4,25 @@ import (
 	"context"
 	"crypto"
 	"encoding/base64"
-	"encoding/json"
+	// "encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	// "log"
 	"os"
-	"path/filepath"
+	// "path/filepath"
 	"regexp"
 	"strconv"
-	"time"
+	// "time"
 
 	vault "github.com/hashicorp/vault/api"
+	"github.com/iancoleman/orderedmap"
 	"github.com/jellydator/ttlcache/v3"
-	"github.com/mitchellh/go-homedir"
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	// "github.com/mitchellh/go-homedir"
+	// "github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 
-	"github.com/whh39/ehsm/go"
+	ehsm "github.com/whh39/ehsm/go"
 )
 
 func init() {
@@ -31,7 +32,9 @@ func init() {
 }
 
 type ehsmClient struct {
-	client                  *vault.Client
+	client                  *ehsm.Client
+	clients					*vault.Client
+	keyid 					string
 	keyPath                 string
 	transitSecretEnginePath string
 	keyCache                *ttlcache.Cache[string, crypto.PublicKey]
@@ -86,42 +89,26 @@ func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string
 		return nil, err
 	}
 
-	if address == "" {
-		address = os.Getenv("VAULT_ADDR")
-	}
-	if address == "" {
-		return nil, errors.New("VAULT_ADDR is not set")
-	}
+	client := ehsm.NewClient()
 
-	client, err := vault.NewClient(&vault.Config{
-		Address: address,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("new vault client: %w", err)
-	}
-
-	if token == "" {
-		token = os.Getenv("VAULT_TOKEN")
-	}
-	if token == "" {
-		log.Printf("VAULT_TOKEN is not set, trying to read token from file at path ~/.vault-token")
-		homeDir, err := homedir.Dir()
-		if err != nil {
-			return nil, fmt.Errorf("get home directory: %w", err)
-		}
-
-		tokenFromFile, err := os.ReadFile(filepath.Join(homeDir, ".vault-token"))
-		if err != nil {
-			return nil, fmt.Errorf("read .vault-token file: %w", err)
-		}
-
-		token = string(tokenFromFile)
-	}
-	client.SetToken(token)
-
-	// if transitSecretEnginePath == "" {
-	// 	transitSecretEnginePath = os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
+	// if token == "" {
+	// 	token = os.Getenv("VAULT_TOKEN")
 	// }
+	// if token == "" {
+	// 	log.Printf("VAULT_TOKEN is not set, trying to read token from file at path ~/.vault-token")
+	// 	homeDir, err := homedir.Dir()
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("get home directory: %w", err)
+	// 	}
+
+	// 	tokenFromFile, err := os.ReadFile(filepath.Join(homeDir, ".vault-token"))
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("read .vault-token file: %w", err)
+	// 	}
+
+	// 	token = string(tokenFromFile)
+	// }
+	// client.SetToken(token)
 	if transitSecretEnginePath == "" {
 		transitSecretEnginePath = "transit"
 	}
@@ -139,82 +126,26 @@ func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string
 	return ehsmClient, nil
 }
 
-func (h *ehsmClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, error) {
+
+func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
 	fmt.Println("whh fetchPublicKey")
-	client := h.client.Logical()
+	payload := orderedmap.New()
+	payload.Set("keyid", h.keyid)
+	// client := h.clients.Logical()
 
-	path := fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath)
+	// path := fmt.Sprintf("/keys/%s", h.keyPath)
 
-	keyResult, err := client.Read(path)
-	if err != nil {
-		return nil, fmt.Errorf("public key: %w", err)
-	}
+	// _, err := client.Read(path)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("public key: %w", err)
+	// }
 
-	if keyResult == nil {
-		return nil, fmt.Errorf("could not read data from transit key path: %s", path)
-	}
-
-	keysData, hasKeys := keyResult.Data["keys"]
-	latestVersion, hasVersion := keyResult.Data["latest_version"]
-	if !hasKeys || !hasVersion {
-		return nil, errors.New("failed to read transit key keys: corrupted response")
-	}
-
-	keys, ok := keysData.(map[string]interface{})
-	if !ok {
-		return nil, errors.New("failed to read transit key keys: Invalid keys map")
-	}
-
-	keyVersion, ok := latestVersion.(json.Number)
-	if !ok {
-		return nil, fmt.Errorf("format of 'latest_version' is not json.Number")
-	}
-
-	keyData, ok := keys[string(keyVersion)]
-	if !ok {
-		return nil, errors.New("failed to read transit key keys: corrupted response")
-	}
-
-	keyMap, ok := keyData.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("could not parse transit key keys data as map[string]interface{}")
-	}
-
-	publicKeyPem, ok := keyMap["public_key"]
-	if !ok {
-		return nil, errors.New("failed to read transit key keys: corrupted response")
-	}
-
-	strPublicKeyPem, ok := publicKeyPem.(string)
-	if !ok {
-		return nil, fmt.Errorf("could not parse public key pem as string")
-	}
-
-	return cryptoutils.UnmarshalPEMToPublicKey([]byte(strPublicKeyPem))
+	return h.client.Getpubkey(payload)
 }
 
-func (h *ehsmClient) public() (crypto.PublicKey, error) {
-	fmt.Println("whh public")
-	var lerr error
-	loader := ttlcache.LoaderFunc[string, crypto.PublicKey](
-		func(c *ttlcache.Cache[string, crypto.PublicKey], key string) *ttlcache.Item[string, crypto.PublicKey] {
-			var pubkey crypto.PublicKey
-			pubkey, lerr = h.fetchPublicKey(context.Background())
-			if lerr == nil {
-				item := c.Set(key, pubkey, 300*time.Second)
-				return item
-			}
-			return nil
-		},
-	)
 
-	item := h.keyCache.Get(cacheKey, ttlcache.WithLoader[string, crypto.PublicKey](loader))
-	return item.Value(), lerr
-}
-
-func (h ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
-	fmt.Println("whh sign")
-	client := h.client.Logical()
+func (h *ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
+	client := h.clients.Logical()
 
 	keyVersion := fmt.Sprintf("%d", h.keyVersion)
 	var keyVersionUsedPtr *string
@@ -228,7 +159,7 @@ func (h ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignO
 			return nil, fmt.Errorf("parsing requested key version: %w", err)
 		}
 	}
-
+	
 	signResult, err := client.Write(fmt.Sprintf("/%s/sign/%s%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
 		"input":       base64.StdEncoding.Strict().EncodeToString(digest),
 		"prehashed":   alg != crypto.Hash(0),
@@ -243,12 +174,12 @@ func (h ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignO
 		return nil, errors.New("transit: response corrupted in-transit")
 	}
 
-	return vaultDecode(encodedSignature, keyVersionUsedPtr)
+	return vaultDecode(encodedSignature)
 }
 
 func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
 	fmt.Println("whh verify")
-	client := h.client.Logical()
+	client := h.clients.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
 	keyVersion := ""
@@ -271,7 +202,7 @@ func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signatur
 		vaultDataPrefix = os.Getenv("VAULT_KEY_PREFIX")
 		if vaultDataPrefix == "" {
 			if h.keyVersion > 0 {
-				vaultDataPrefix = fmt.Sprintf("vault:v%d:", h.keyVersion)
+				vaultDataPrefix = fmt.Sprintf("ehsm:v%d:", h.keyVersion)
 			} else {
 				vaultDataPrefix = vaultV1DataPrefix
 			}
@@ -305,16 +236,13 @@ func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signatur
 }
 
 // Vault likes to prefix base64 data with a version prefix
-func vaultDecode(data interface{}, keyVersionUsed *string) ([]byte, error) {
+func vaultDecode(data interface{}) ([]byte, error) {
 	fmt.Println("whh vaultDecode")
 	encoded, ok := data.(string)
 	if !ok {
 		return nil, errors.New("received non-string data")
 	}
 
-	if keyVersionUsed != nil {
-		*keyVersionUsed = prefixRegex.FindString(encoded)
-	}
 	return base64.StdEncoding.DecodeString(prefixRegex.ReplaceAllString(encoded, ""))
 }
 
@@ -336,7 +264,11 @@ func hashString(h crypto.Hash) string {
 	return hashStr
 }
 
-func (a ehsmClient) createKeyS() (crypto.PublicKey, error) {
-	key := ehsm.CreateKey("EH_RSA_4096", "EH_INTERNAL_KEY")
-	return ehsm.Getpubkey(key)
+func (a ehsmClient) createKey(typeStr string) (crypto.PublicKey, error) {
+	payload := orderedmap.New()
+    payload.Set("keyspec", typeStr)
+    payload.Set("origin", "EH_INTERNAL_KEY")
+	key := a.client.CreateKey(payload)
+	a.keyid = key
+	return a.fetchPublicKey()
 }
