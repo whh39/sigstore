@@ -13,9 +13,9 @@ import (
 	"regexp"
 	"strconv"
 	// "time"
+	"io/ioutil"
 
 	vault "github.com/hashicorp/vault/api"
-	"github.com/iancoleman/orderedmap"
 	"github.com/jellydator/ttlcache/v3"
 	// "github.com/mitchellh/go-homedir"
 	// "github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -129,8 +129,8 @@ func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string
 
 func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
 	fmt.Println("whh fetchPublicKey")
-	payload := orderedmap.New()
-	payload.Set("keyid", h.keyid)
+	KeyIDFileName := fmt.Sprintf("./keyname/%s", h.keyPath)
+	keyid, _ := ioutil.ReadFile(KeyIDFileName)
 	// client := h.clients.Logical()
 
 	// path := fmt.Sprintf("/keys/%s", h.keyPath)
@@ -140,7 +140,7 @@ func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
 	// 	return nil, fmt.Errorf("public key: %w", err)
 	// }
 
-	return h.client.Getpubkey(payload)
+	return h.client.Getpubkey(string(keyid))
 }
 
 
@@ -265,10 +265,20 @@ func hashString(h crypto.Hash) string {
 }
 
 func (a ehsmClient) createKey(typeStr string) (crypto.PublicKey, error) {
-	payload := orderedmap.New()
-    payload.Set("keyspec", typeStr)
-    payload.Set("origin", "EH_INTERNAL_KEY")
-	key := a.client.CreateKey(payload)
-	a.keyid = key
+	fmt.Println("lstcreateKey")
+
+	key := a.client.CreateKey(typeStr, "EH_INTERNAL_KEY", "", "", "")
+
+	keybyte := []byte(key)
+	// a.keyid = key
+	KeyIDFileName := fmt.Sprintf("/keyname/%s", a.keyPath)
+	file, err := os.OpenFile(KeyIDFileName, os.O_RDONLY, 755)
+	defer file.Close()
+	file.Write(keybyte)
+	if err != nil {
+		panic(err)
+	}
+	
+	fmt.Fprintln(os.Stderr, "KeyId written to", KeyIDFileName)
 	return a.fetchPublicKey()
 }
