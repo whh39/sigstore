@@ -64,7 +64,6 @@ func ValidReference(ref string) error {
 }
 
 func parseReference(resourceID string) (keyPath string, err error) {
-	fmt.Println("whh parseReference")
 	i := referenceRegex.SubexpIndex("path")
 	v := referenceRegex.FindStringSubmatch(resourceID)
 	if len(v) < i+1 {
@@ -76,7 +75,6 @@ func parseReference(resourceID string) (keyPath string, err error) {
 }
 
 func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string, keyVersion uint64) (*ehsmClient, error) {
-	fmt.Println("whh newHashivaultClient")
 	if err := ValidReference(keyResourceID); err != nil {
 		return nil, err
 	}
@@ -123,7 +121,6 @@ func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string
 
 
 func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
-	fmt.Println("whh fetchPublicKey")
 	KeyIDFileName := fmt.Sprintf("./%s", h.keyPath)
 	keyid, _ := ioutil.ReadFile(KeyIDFileName)
 
@@ -132,7 +129,6 @@ func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
 
 
 func (h *ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
-	fmt.Println("whh sign")
 	encodedigest := base64.StdEncoding.Strict().EncodeToString(digest)
 	KeyIDFileName := fmt.Sprintf("./%s", h.keyPath)
 	keyid, _ := ioutil.ReadFile(KeyIDFileName)
@@ -144,7 +140,7 @@ func (h *ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.Sign
 }
 
 func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
-	fmt.Println("whh verify")
+
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
 	// keyVersion := ""
@@ -189,8 +185,6 @@ func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signatur
 }
 
 func (a ehsmClient) createKey(typeStr string) (crypto.PublicKey, error) {
-	fmt.Println("lstcreateKey")
-
 	key := a.client.CreateKey(typeStr, "EH_INTERNAL_KEY", "", "EH_PAD_RSA_PKCS1_PSS", "EH_SHA_2_256")
 
 	keybyte := []byte(key)
