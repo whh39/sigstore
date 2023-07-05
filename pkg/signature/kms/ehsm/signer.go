@@ -210,5 +210,5 @@ func (*SignerVerifier) SupportedAlgorithms() []string {
 
 // DefaultAlgorithm returns the default algorithm for the EHSM service
 func (*SignerVerifier) DefaultAlgorithm() string {
-	return AlgorithmEHRSA3072
+	return AlgorithmEHECP256
 }
