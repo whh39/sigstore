@@ -126,14 +126,6 @@ func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
 	fmt.Println("whh fetchPublicKey")
 	KeyIDFileName := fmt.Sprintf("./%s", h.keyPath)
 	keyid, _ := ioutil.ReadFile(KeyIDFileName)
-	// client := h.clients.Logical()
-
-	// path := fmt.Sprintf("/keys/%s", h.keyPath)
-
-	// _, err := client.Read(path)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("public key: %w", err)
-	// }
 
 	return h.client.Getpubkey(string(keyid))
 }
@@ -153,7 +145,6 @@ func (h *ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.Sign
 
 func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
 	fmt.Println("whh verify")
-	// client := h.clients.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
 	// keyVersion := ""
@@ -185,9 +176,13 @@ func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signatur
 	encodedigest := base64.StdEncoding.Strict().EncodeToString(digest)
 	KeyIDFileName := fmt.Sprintf("./%s", h.keyPath)
 	keyid, _ := ioutil.ReadFile(KeyIDFileName)
-	_, err := h.client.Verify(string(keyid), encodedigest, encodedSig)
+	result, err := h.client.Verify(string(keyid), encodedigest, encodedSig)
 	if err != nil {
 		return fmt.Errorf("verify: %w", err)
+	}
+
+	if !result {
+		return errors.New("failed vault verification")
 	}
 
 	return nil

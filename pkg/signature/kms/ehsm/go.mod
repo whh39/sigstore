@@ -10,7 +10,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sigstore/sigstore v1.7.1
-	github.com/whh39/ehsm/go v1.6.11
+	github.com/whh39/ehsm/go v1.6.12
 )
 
 require (
