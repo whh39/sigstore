@@ -11,7 +11,7 @@ import (
 	"os"
 	// "path/filepath"
 	"regexp"
-	"strconv"
+	// "strconv"
 	// "time"
 	"io/ioutil"
 
@@ -36,9 +36,7 @@ type ehsmClient struct {
 	clients					*vault.Client
 	keyid 					string
 	keyPath                 string
-	transitSecretEnginePath string
 	keyCache                *ttlcache.Cache[string, crypto.PublicKey]
-	keyVersion              uint64
 }
 
 var (
@@ -59,7 +57,6 @@ const (
 
 // ValidReference returns a non-nil error if the reference string is invalid
 func ValidReference(ref string) error {
-	fmt.Println("whh ValidReference")
 	if !referenceRegex.MatchString(ref) {
 		return errReference
 	}
@@ -116,11 +113,9 @@ func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string
 	ehsmClient := &ehsmClient{
 		client:                  client,
 		keyPath:                 keyPath,
-		transitSecretEnginePath: transitSecretEnginePath,
 		keyCache: ttlcache.New[string, crypto.PublicKey](
 			ttlcache.WithDisableTouchOnHit[string, crypto.PublicKey](),
 		),
-		keyVersion: keyVersion,
 	}
 
 	return ehsmClient, nil
@@ -129,7 +124,7 @@ func newEhsmClient(address, token, transitSecretEnginePath, keyResourceID string
 
 func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
 	fmt.Println("whh fetchPublicKey")
-	KeyIDFileName := fmt.Sprintf("./keyname/%s", h.keyPath)
+	KeyIDFileName := fmt.Sprintf("./%s", h.keyPath)
 	keyid, _ := ioutil.ReadFile(KeyIDFileName)
 	// client := h.clients.Logical()
 
@@ -145,140 +140,74 @@ func (h *ehsmClient) fetchPublicKey() (crypto.PublicKey, error) {
 
 
 func (h *ehsmClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
-	client := h.clients.Logical()
+	fmt.Println("whh sign")
+	encodedigest := base64.StdEncoding.Strict().EncodeToString(digest)
+	KeyIDFileName := fmt.Sprintf("./%s", h.keyPath)
+	keyid, _ := ioutil.ReadFile(KeyIDFileName)
 
-	keyVersion := fmt.Sprintf("%d", h.keyVersion)
-	var keyVersionUsedPtr *string
-	for _, opt := range opts {
-		opt.ApplyKeyVersion(&keyVersion)
-		opt.ApplyKeyVersionUsed(&keyVersionUsedPtr)
-	}
+	signature, _ := h.client.Sign(string(keyid), encodedigest)
 
-	if keyVersion != "" {
-		if _, err := strconv.ParseUint(keyVersion, 10, 64); err != nil {
-			return nil, fmt.Errorf("parsing requested key version: %w", err)
-		}
-	}
-	
-	signResult, err := client.Write(fmt.Sprintf("/%s/sign/%s%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
-		"input":       base64.StdEncoding.Strict().EncodeToString(digest),
-		"prehashed":   alg != crypto.Hash(0),
-		"key_version": keyVersion,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("transit: failed to sign payload: %w", err)
-	}
-
-	encodedSignature, ok := signResult.Data["signature"]
-	if !ok {
-		return nil, errors.New("transit: response corrupted in-transit")
-	}
-
-	return vaultDecode(encodedSignature)
+	encodedSignature,err := base64.StdEncoding.DecodeString(signature)
+	return []byte(encodedSignature), err
 }
 
 func (h ehsmClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
 	fmt.Println("whh verify")
-	client := h.clients.Logical()
+	// client := h.clients.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
-	keyVersion := ""
-	for _, opt := range opts {
-		opt.ApplyKeyVersion(&keyVersion)
-	}
+	// keyVersion := ""
+	// for _, opt := range opts {
+	// 	opt.ApplyKeyVersion(&keyVersion)
+	// }
 
-	var vaultDataPrefix string
-	if keyVersion != "" {
-		// keyVersion >= 1 on verification but can be set to 0 on signing
-		kvUint, err := strconv.ParseUint(keyVersion, 10, 64)
-		if err != nil {
-			return fmt.Errorf("parsing requested key version: %w", err)
-		} else if kvUint == 0 {
-			return errors.New("key version must be >= 1")
-		}
+	// var vaultDataPrefix string
+	// if keyVersion != "" {
+	// 	// keyVersion >= 1 on verification but can be set to 0 on signing
+	// 	kvUint, err := strconv.ParseUint(keyVersion, 10, 64)
+	// 	if err != nil {
+	// 		return fmt.Errorf("parsing requested key version: %w", err)
+	// 	} else if kvUint == 0 {
+	// 		return errors.New("key version must be >= 1")
+	// 	}
 
-		vaultDataPrefix = fmt.Sprintf("vault:v%d:", kvUint)
-	} else {
-		vaultDataPrefix = os.Getenv("VAULT_KEY_PREFIX")
-		if vaultDataPrefix == "" {
-			if h.keyVersion > 0 {
-				vaultDataPrefix = fmt.Sprintf("ehsm:v%d:", h.keyVersion)
-			} else {
-				vaultDataPrefix = vaultV1DataPrefix
-			}
-		}
-	}
-
-	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
-		"input":     base64.StdEncoding.EncodeToString(digest),
-		"prehashed": alg != crypto.Hash(0),
-		"signature": fmt.Sprintf("%s%s", vaultDataPrefix, encodedSig),
-	})
+	// 	vaultDataPrefix = fmt.Sprintf("vault:v%d:", kvUint)
+	// } else {
+	// 	vaultDataPrefix = os.Getenv("VAULT_KEY_PREFIX")
+	// 	if vaultDataPrefix == "" {
+	// 		if h.keyVersion > 0 {
+	// 			vaultDataPrefix = fmt.Sprintf("ehsm:v%d:", h.keyVersion)
+	// 		} else {
+	// 			vaultDataPrefix = vaultV1DataPrefix
+	// 		}
+	// 	}
+	// }
+	encodedigest := base64.StdEncoding.Strict().EncodeToString(digest)
+	KeyIDFileName := fmt.Sprintf("./%s", h.keyPath)
+	keyid, _ := ioutil.ReadFile(KeyIDFileName)
+	_, err := h.client.Verify(string(keyid), encodedigest, encodedSig)
 	if err != nil {
 		return fmt.Errorf("verify: %w", err)
-	}
-
-	valid, ok := result.Data["valid"]
-	if !ok {
-		return errors.New("corrupted response")
-	}
-
-	isValid, ok := valid.(bool)
-	if !ok {
-		return fmt.Errorf("received non-bool value from 'valid' key")
-	}
-
-	if !isValid {
-		return errors.New("failed vault verification")
 	}
 
 	return nil
 }
 
-// Vault likes to prefix base64 data with a version prefix
-func vaultDecode(data interface{}) ([]byte, error) {
-	fmt.Println("whh vaultDecode")
-	encoded, ok := data.(string)
-	if !ok {
-		return nil, errors.New("received non-string data")
-	}
-
-	return base64.StdEncoding.DecodeString(prefixRegex.ReplaceAllString(encoded, ""))
-}
-
-func hashString(h crypto.Hash) string {
-	fmt.Println("whh hashString")
-	var hashStr string
-	switch h {
-	case crypto.SHA224:
-		hashStr = "/sha2-224"
-	case crypto.SHA256:
-		hashStr = "/sha2-256"
-	case crypto.SHA384:
-		hashStr = "/sha2-384"
-	case crypto.SHA512:
-		hashStr = "/sha2-512"
-	default:
-		hashStr = ""
-	}
-	return hashStr
-}
-
 func (a ehsmClient) createKey(typeStr string) (crypto.PublicKey, error) {
 	fmt.Println("lstcreateKey")
 
-	key := a.client.CreateKey(typeStr, "EH_INTERNAL_KEY", "", "", "")
+	key := a.client.CreateKey(typeStr, "EH_INTERNAL_KEY", "", "EH_PAD_RSA_PKCS1_PSS", "EH_SHA_2_256")
 
 	keybyte := []byte(key)
 	// a.keyid = key
-	KeyIDFileName := fmt.Sprintf("/keyname/%s", a.keyPath)
-	file, err := os.OpenFile(KeyIDFileName, os.O_RDONLY, 755)
+	KeyIDFileName := fmt.Sprintf("./%s", a.keyPath)
+	file, err := os.OpenFile(KeyIDFileName, os.O_CREATE|os.O_RDWR, 0600)
 	defer file.Close()
 	file.Write(keybyte)
 	if err != nil {
 		panic(err)
 	}
 	
-	fmt.Fprintln(os.Stderr, "KeyId written to", KeyIDFileName)
+	fmt.Fprintln(os.Stderr, "KeyId written to", a.keyPath)
 	return a.fetchPublicKey()
 }
